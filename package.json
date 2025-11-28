@@ -1,0 +1,42 @@
+{
+  "name": "totp-playwright",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:complete": "playwright test --headed",
+    "test:login": "playwright test --project=\"🔐 Login Authentication\" --headed",
+    "test:homepage": "playwright test --project=\"🏠 Homepage Verification\" --headed",
+    "test:headless": "playwright test",
+    "report": "playwright show-report",
+    "report:visual": "node custom-report-generator.js",
+    "test:with-visual-report": "playwright test --reporter=json --reporter=html && node custom-report-generator.js",
+    "test:visual-charts": "playwright test --reporter=json --reporter=html && start visual-report.html",
+    "test:allure": "playwright test --reporter=allure-playwright && allure generate ./allure-results --clean",
+    "test:all-reports": "playwright test --reporter=html,allure-playwright,json && allure generate ./allure-results --clean",
+    "allure:serve": "allure serve ./allure-results",
+    "allure:generate": "allure generate ./allure-results --clean",
+    "allure:open": "allure open ./allure-report",
+    "open:visual-report": "start visual-report.html",
+    "open:playwright-report": "start playwright-report/visual-report.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.10.1",
+    "allure-playwright": "^3.4.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "otpauth": "^9.4.1"
+  },
+  "directories": {
+    "test": "tests"
+  }
+}

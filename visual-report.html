@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playwright Test Results - Visual Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card.passed {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+        
+        .stat-card.failed {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+        }
+        
+        .stat-card.duration {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+        }
+        
+        .stat-card.total {
+            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+            color: white;
+        }
+        
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+        
+        .chart-card h3 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+            font-size: 1.3em;
+        }
+        
+        .test-details {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+        
+        .test-details h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .test-item.failed {
+            border-left-color: #f44336;
+        }
+        
+        .test-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .test-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .status-passed {
+            background: #4CAF50;
+        }
+        
+        .status-failed {
+            background: #f44336;
+        }
+        
+        .test-duration {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            color: #666;
+        }
+        
+        .chart-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .chart-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .chart-btn:hover {
+            background: #45a049;
+        }
+        
+        .chart-btn.active {
+            background: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Playwright Test Results Dashboard</h1>
+            <p>Comprehensive Visual Analysis of Test Execution</p>
+            <p id="timestamp"></p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-number" id="totalTests">0</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card passed">
+                <div class="stat-number" id="passedTests">0</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card failed">
+                <div class="stat-number" id="failedTests">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card duration">
+                <div class="stat-number" id="totalDuration">0s</div>
+                <div class="stat-label">Total Duration</div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3>📊 Test Results - Pie Chart</h3>
+                <div class="chart-controls">
+                    <button class="chart-btn active" onclick="showPieChart('resultsChart')">Pie</button>
+                    <button class="chart-btn" onclick="showDoughnutChart('resultsChart')">Doughnut</button>
+                </div>
+                <canvas id="resultsChart" width="400" height="300"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3>📈 Test Duration - Bar Chart</h3>
+                <div class="chart-controls">
+                    <button class="chart-btn active" onclick="showBarChart('durationChart')">Vertical</button>
+                    <button class="chart-btn" onclick="showHorizontalBarChart('durationChart')">Horizontal</button>
+                </div>
+                <canvas id="durationChart" width="400" height="300"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3>🏗️ Projects Overview - Bar Chart</h3>
+                <div class="chart-controls">
+                    <button class="chart-btn active" onclick="showProjectChart('projectChart')">By Project</button>
+                    <button class="chart-btn" onclick="showStackedChart('projectChart')">Stacked</button>
+                </div>
+                <canvas id="projectChart" width="400" height="300"></canvas>
+            </div>
+            
+            <div class="chart-card">
+                <h3>🎯 Status Distribution - Doughnut Chart</h3>
+                <div class="chart-controls">
+                    <button class="chart-btn active" onclick="showStatusChart('statusChart')">Status</button>
+                    <button class="chart-btn" onclick="showSuccessRateChart('statusChart')">Success Rate</button>
+                </div>
+                <canvas id="statusChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+        
+        <div class="test-details">
+            <h3>📋 Detailed Test Results</h3>
+            <div id="testList"></div>
+        </div>
+        
+        <div class="footer">
+            <p>Generated by Playwright Visual Reporter | Test Run: <span id="runDate"></span></p>
+            <p>🚀 TOTP Authentication & Page Object Model Implementation</p>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js plugin registration
+        Chart.register(ChartDataLabels);
+        
+        // Global chart instances
+        let charts = {};
+        
+        // Sample test data (will be replaced with actual data)
+        const testData = {
+            passed: 3,
+            failed: 0,
+            total: 3,
+            duration: "1.6m",
+            projects: [
+                { name: "login", passed: 1, failed: 0, duration: "45s" },
+                { name: "homepage", passed: 2, failed: 0, duration: "30s" }
+            ],
+            tests: [
+                { name: "D365 Login with TOTP and save session", status: "passed", duration: "45.2s", project: "login" },
+                { name: "Verify Finance and Operations homepage content", status: "passed", duration: "28.7s", project: "homepage" },
+                { name: "Verify homepage functionality", status: "passed", duration: "31.4s", project: "homepage" }
+            ]
+        };
+
+        // Load actual test data if available
+        async function loadTestData() {
+            try {
+                const response = await fetch('./test-results.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    return processPlaywrightData(data);
+                }
+            } catch (error) {
+                console.log('Using sample data');
+            }
+            return testData;
+        }
+
+        // Process Playwright JSON data
+        function processPlaywrightData(data) {
+            const processed = {
+                passed: 0,
+                failed: 0,
+                total: 0,
+                duration: "0s",
+                projects: {},
+                tests: []
+            };
+
+            if (data.suites) {
+                data.suites.forEach(suite => {
+                    processTestSuite(suite, processed);
+                });
+            }
+
+            processed.total = processed.passed + processed.failed;
+            processed.projects = Object.values(processed.projects);
+            
+            return processed;
+        }
+
+        function processTestSuite(suite, processed) {
+            if (suite.specs) {
+                suite.specs.forEach(spec => {
+                    spec.tests.forEach(test => {
+                        const status = test.results[0]?.status || 'unknown';
+                        const duration = test.results[0]?.duration || 0;
+                        
+                        if (status === 'passed') processed.passed++;
+                        else if (status === 'failed') processed.failed++;
+                        
+                        processed.tests.push({
+                            name: test.title,
+                            status: status,
+                            duration: `${(duration / 1000).toFixed(1)}s`,
+                            project: suite.title || 'default'
+                        });
+                        
+                        // Track by project
+                        const projectName = suite.title || 'default';
+                        if (!processed.projects[projectName]) {
+                            processed.projects[projectName] = { name: projectName, passed: 0, failed: 0, duration: "0s" };
+                        }
+                        
+                        if (status === 'passed') processed.projects[projectName].passed++;
+                        else if (status === 'failed') processed.projects[projectName].failed++;
+                    });
+                });
+            }
+            
+            if (suite.suites) {
+                suite.suites.forEach(subSuite => processTestSuite(subSuite, processed));
+            }
+        }
+
+        // Update statistics
+        function updateStats(data) {
+            document.getElementById('totalTests').textContent = data.total;
+            document.getElementById('passedTests').textContent = data.passed;
+            document.getElementById('failedTests').textContent = data.failed;
+            document.getElementById('totalDuration').textContent = data.duration;
+            document.getElementById('timestamp').textContent = new Date().toLocaleString();
+            document.getElementById('runDate').textContent = new Date().toLocaleDateString();
+        }
+
+        // Create Pie Chart
+        function showPieChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Passed ✅', 'Failed ❌'],
+                    datasets: [{
+                        data: [testData.passed, testData.failed || 0.1], // Avoid 0 for visual
+                        backgroundColor: ['#4CAF50', '#f44336'],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        datalabels: {
+                            color: 'white',
+                            font: {
+                                weight: 'bold',
+                                size: 16
+                            },
+                            formatter: (value, ctx) => {
+                                if (ctx.dataIndex === 1 && testData.failed === 0) return '';
+                                return value;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Doughnut Chart
+        function showDoughnutChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Passed ✅', 'Failed ❌'],
+                    datasets: [{
+                        data: [testData.passed, testData.failed || 0.1],
+                        backgroundColor: ['#4CAF50', '#f44336'],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        datalabels: {
+                            color: 'white',
+                            font: {
+                                weight: 'bold',
+                                size: 16
+                            },
+                            formatter: (value, ctx) => {
+                                if (ctx.dataIndex === 1 && testData.failed === 0) return '';
+                                return value;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Bar Chart
+        function showBarChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: testData.tests.map(test => test.name),
+                    datasets: [{
+                        label: 'Duration (seconds)',
+                        data: testData.tests.map(test => parseFloat(test.duration)),
+                        backgroundColor: testData.tests.map(test => 
+                            test.status === 'passed' ? '#4CAF50' : '#f44336'
+                        ),
+                        borderColor: testData.tests.map(test => 
+                            test.status === 'passed' ? '#45a049' : '#d32f2f'
+                        ),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Duration (seconds)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        datalabels: {
+                            color: 'white',
+                            font: {
+                                weight: 'bold'
+                            },
+                            formatter: (value) => value + 's'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Horizontal Bar Chart
+        function showHorizontalBarChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: testData.tests.map(test => test.name),
+                    datasets: [{
+                        label: 'Duration (seconds)',
+                        data: testData.tests.map(test => parseFloat(test.duration)),
+                        backgroundColor: testData.tests.map(test => 
+                            test.status === 'passed' ? '#4CAF50' : '#f44336'
+                        ),
+                        borderColor: testData.tests.map(test => 
+                            test.status === 'passed' ? '#45a049' : '#d32f2f'
+                        ),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Duration (seconds)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        datalabels: {
+                            color: 'white',
+                            font: {
+                                weight: 'bold'
+                            },
+                            formatter: (value) => value + 's'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Project Chart
+        function showProjectChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: testData.projects.map(project => project.name),
+                    datasets: [
+                        {
+                            label: 'Passed',
+                            data: testData.projects.map(project => project.passed),
+                            backgroundColor: '#4CAF50',
+                            borderColor: '#45a049',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Failed',
+                            data: testData.projects.map(project => project.failed),
+                            backgroundColor: '#f44336',
+                            borderColor: '#d32f2f',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Tests'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Projects'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        datalabels: {
+                            color: 'white',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Stacked Chart
+        function showStackedChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: testData.projects.map(project => project.name),
+                    datasets: [
+                        {
+                            label: 'Passed',
+                            data: testData.projects.map(project => project.passed),
+                            backgroundColor: '#4CAF50',
+                            borderColor: '#45a049',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Failed',
+                            data: testData.projects.map(project => project.failed),
+                            backgroundColor: '#f44336',
+                            borderColor: '#d32f2f',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'Projects'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Tests'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        datalabels: {
+                            color: 'white',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Status Chart
+        function showStatusChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            const passRate = ((testData.passed / testData.total) * 100).toFixed(1);
+            const failRate = ((testData.failed / testData.total) * 100).toFixed(1);
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [`Passed (${passRate}%)`, `Failed (${failRate}%)`],
+                    datasets: [{
+                        data: [testData.passed, testData.failed || 0.1],
+                        backgroundColor: ['#4CAF50', '#f44336'],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '50%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        datalabels: {
+                            color: 'white',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            formatter: (value, ctx) => {
+                                if (ctx.dataIndex === 1 && testData.failed === 0) return '';
+                                const percentage = ((value / testData.total) * 100).toFixed(1);
+                                return percentage + '%';
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create Success Rate Chart
+        function showSuccessRateChart(canvasId) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) charts[canvasId].destroy();
+            
+            const successRate = ((testData.passed / testData.total) * 100).toFixed(1);
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Success Rate', 'Remaining'],
+                    datasets: [{
+                        data: [successRate, 100 - successRate],
+                        backgroundColor: ['#4CAF50', '#e0e0e0'],
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        datalabels: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: [{
+                    afterDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        ctx.save();
+                        ctx.font = 'bold 24px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#333';
+                        const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+                        const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+                        ctx.fillText(`${successRate}%`, centerX, centerY - 10);
+                        ctx.font = '14px Arial';
+                        ctx.fillText('Success Rate', centerX, centerY + 15);
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        // Update chart controls
+        function updateChartControls() {
+            document.querySelectorAll('.chart-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.parentNode.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        }
+
+        // Create test details list
+        function createTestList(data) {
+            const testList = document.getElementById('testList');
+            testList.innerHTML = '';
+            
+            data.tests.forEach(test => {
+                const testItem = document.createElement('div');
+                testItem.className = `test-item ${test.status}`;
+                testItem.innerHTML = `
+                    <div>
+                        <div class="test-name">🧪 ${test.name}</div>
+                        <div class="test-duration">⏱️ ${test.duration} | 📁 ${test.project}</div>
+                    </div>
+                    <div class="test-status status-${test.status}">
+                        ${test.status.toUpperCase()}
+                    </div>
+                `;
+                testList.appendChild(testItem);
+            });
+        }
+
+        // Initialize dashboard
+        async function initDashboard() {
+            const data = await loadTestData();
+            updateStats(data);
+            createTestList(data);
+            
+            // Initialize all charts
+            showPieChart('resultsChart');
+            showBarChart('durationChart');
+            showProjectChart('projectChart');
+            showStatusChart('statusChart');
+            
+            updateChartControls();
+        }
+
+        // Start the dashboard when page loads
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>

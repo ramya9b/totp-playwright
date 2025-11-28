@@ -1,0 +1,335 @@
+# GitLab CI/CD Pipeline for Playwright TOTP Tests
+# .gitlab-ci.yml Configuration
+
+stages:
+  - prepare
+  - test
+  - report
+  - notify
+  - deploy
+
+variables:
+  NODE_VERSION: "18"
+  JAVA_VERSION: "11"
+  FF_USE_FASTZIP: "true"
+  ARTIFACT_COMPRESSION_LEVEL: "fast"
+  CACHE_COMPRESSION_LEVEL: "fast"
+
+# Global cache configuration
+cache:
+  key: 
+    files:
+      - package-lock.json
+  paths:
+    - node_modules/
+    - ~/.cache/ms-playwright/
+
+# Prepare stage
+prepare:
+  stage: prepare
+  image: node:18-alpine
+  script:
+    - echo "🔧 Preparing Playwright test environment..."
+    - npm ci
+    - echo "✅ Dependencies installed successfully"
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+  only:
+    - main
+    - develop
+    - merge_requests
+    - schedules
+
+# Test execution jobs
+.test_template: &test_template
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.40.0-focal
+  dependencies:
+    - prepare
+  before_script:
+    - echo "🔧 Setting up test environment..."
+    - apt-get update && apt-get install -y openjdk-11-jdk
+    - npm install -g allure-commandline
+    - echo "D365_URL=${D365_URL}" >> .env
+    - echo "D365_EMAIL=${D365_EMAIL}" >> .env  
+    - echo "D365_PASSWORD=${D365_PASSWORD}" >> .env
+    - echo "TOTP_SECRET=${TOTP_SECRET}" >> .env
+    - echo "CI=true" >> .env
+  script:
+    - echo "🧪 Running Playwright tests with ${BROWSER_NAME} browser"
+    - npm run test:all-reports || true
+    - echo "📈 Generating Allure report..."
+    - allure generate allure-results --clean -o allure-report
+    - echo "✅ Test execution completed"
+  after_script:
+    - echo "📊 Test summary for ${BROWSER_NAME}:"
+    - cat test-results/results.json | jq '.stats' || echo "No JSON results found"
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - screenshots/
+      - test-results/
+      - playwright-report/
+      - allure-report/
+      - visual-report.html
+    reports:
+      junit: test-results/results.xml
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+# Browser-specific test jobs
+test:chromium:
+  <<: *test_template
+  variables:
+    BROWSER_NAME: "chromium"
+    PLAYWRIGHT_PROJECT: "Desktop Chrome"
+  only:
+    - main
+    - develop
+    - merge_requests
+    - schedules
+
+test:firefox:
+  <<: *test_template
+  variables:
+    BROWSER_NAME: "firefox"
+    PLAYWRIGHT_PROJECT: "Desktop Firefox"
+  only:
+    - main
+    - develop
+    - schedules
+  allow_failure: true
+
+test:webkit:
+  <<: *test_template
+  variables:
+    BROWSER_NAME: "webkit"
+    PLAYWRIGHT_PROJECT: "Desktop Safari"
+  only:
+    - main
+    - schedules
+  allow_failure: true
+
+# Report aggregation
+aggregate_reports:
+  stage: report
+  image: node:18-alpine
+  dependencies:
+    - test:chromium
+    - test:firefox
+    - test:webkit
+  before_script:
+    - apk add --no-cache openjdk11-jre
+    - npm install -g allure-commandline
+  script:
+    - echo "📊 Aggregating test reports..."
+    - mkdir -p combined-allure-results
+    - cp -r allure-results/* combined-allure-results/ 2>/dev/null || true
+    - allure generate combined-allure-results --clean -o final-allure-report
+    - echo "✅ Reports aggregated successfully"
+  artifacts:
+    expire_in: 1 month
+    paths:
+      - final-allure-report/
+      - combined-allure-results/
+  only:
+    - main
+    - develop
+    - schedules
+
+# Deploy reports to GitLab Pages
+pages:
+  stage: deploy
+  image: alpine:latest
+  dependencies:
+    - aggregate_reports
+  script:
+    - echo "🚀 Preparing reports for GitLab Pages..."
+    - mkdir public
+    - cp -r final-allure-report/* public/
+    - echo "✅ Reports ready for deployment"
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+
+# Notification jobs
+slack_notification:
+  stage: notify
+  image: alpine:latest
+  dependencies:
+    - test:chromium
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      if [ -n "${SLACK_WEBHOOK}" ]; then
+        echo "📱 Sending Slack notification..."
+        STATUS=$([ "$CI_JOB_STATUS" = "success" ] && echo "✅ Passed" || echo "❌ Failed")
+        COLOR=$([ "$CI_JOB_STATUS" = "success" ] && echo "good" || echo "danger")
+        
+        curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"text\": \"🎭 Playwright Test Results\",
+            \"attachments\": [
+              {
+                \"color\": \"${COLOR}\",
+                \"fields\": [
+                  {
+                    \"title\": \"Status\",
+                    \"value\": \"${STATUS}\",
+                    \"short\": true
+                  },
+                  {
+                    \"title\": \"Pipeline\",
+                    \"value\": \"${CI_PIPELINE_ID}\",
+                    \"short\": true
+                  },
+                  {
+                    \"title\": \"Branch\",
+                    \"value\": \"${CI_COMMIT_REF_NAME}\",
+                    \"short\": true
+                  },
+                  {
+                    \"title\": \"Environment\",
+                    \"value\": \"staging\",
+                    \"short\": true
+                  }
+                ],
+                \"actions\": [
+                  {
+                    \"type\": \"button\",
+                    \"text\": \"📊 View Reports\",
+                    \"url\": \"https://${CI_PROJECT_NAMESPACE}.gitlab.io/${CI_PROJECT_NAME}/\"
+                  },
+                  {
+                    \"type\": \"button\",
+                    \"text\": \"🔍 View Pipeline\",
+                    \"url\": \"${CI_PIPELINE_URL}\"
+                  }
+                ]
+              }
+            ]
+          }" "${SLACK_WEBHOOK}"
+        echo "✅ Slack notification sent"
+      else
+        echo "⚠️ SLACK_WEBHOOK not configured, skipping notification"
+      fi
+  when: always
+  allow_failure: true
+  only:
+    - main
+    - develop
+
+teams_notification:
+  stage: notify
+  image: alpine:latest
+  dependencies:
+    - test:chromium
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      if [ -n "${TEAMS_WEBHOOK}" ]; then
+        echo "💬 Sending Teams notification..."
+        STATUS=$([ "$CI_JOB_STATUS" = "success" ] && echo "✅ Passed" || echo "❌ Failed")
+        COLOR=$([ "$CI_JOB_STATUS" = "success" ] && echo "28a745" || echo "dc3545")
+        
+        curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"@type\": \"MessageCard\",
+            \"@context\": \"https://schema.org/extensions\",
+            \"summary\": \"Playwright Test Results\",
+            \"themeColor\": \"${COLOR}\",
+            \"sections\": [
+              {
+                \"activityTitle\": \"🎭 Playwright TOTP Test Results\",
+                \"activitySubtitle\": \"Pipeline ${CI_PIPELINE_ID}\",
+                \"facts\": [
+                  {
+                    \"name\": \"Status:\",
+                    \"value\": \"${STATUS}\"
+                  },
+                  {
+                    \"name\": \"Branch:\",
+                    \"value\": \"${CI_COMMIT_REF_NAME}\"
+                  },
+                  {
+                    \"name\": \"Environment:\",
+                    \"value\": \"staging\"
+                  },
+                  {
+                    \"name\": \"Commit:\",
+                    \"value\": \"${CI_COMMIT_SHORT_SHA}\"
+                  }
+                ],
+                \"markdown\": true
+              }
+            ],
+            \"potentialAction\": [
+              {
+                \"@type\": \"OpenUri\",
+                \"name\": \"📊 View Reports\",
+                \"targets\": [
+                  {
+                    \"os\": \"default\",
+                    \"uri\": \"https://${CI_PROJECT_NAMESPACE}.gitlab.io/${CI_PROJECT_NAME}/\"
+                  }
+                ]
+              },
+              {
+                \"@type\": \"OpenUri\",
+                \"name\": \"🔍 View Pipeline\",
+                \"targets\": [
+                  {
+                    \"os\": \"default\",
+                    \"uri\": \"${CI_PIPELINE_URL}\"
+                  }
+                ]
+              }
+            ]
+          }" "${TEAMS_WEBHOOK}"
+        echo "✅ Teams notification sent"
+      else
+        echo "⚠️ TEAMS_WEBHOOK not configured, skipping notification"
+      fi
+  when: always
+  allow_failure: true
+  only:
+    - main
+    - develop
+
+# Scheduled pipeline for daily runs
+daily_tests:
+  extends: test:chromium
+  only:
+    variables:
+      - $CI_PIPELINE_SOURCE == "schedule"
+  variables:
+    ENVIRONMENT: "production"
+    COMPREHENSIVE_TESTING: "true"
+
+# Manual trigger for specific environments
+manual_staging_test:
+  extends: test:chromium
+  variables:
+    ENVIRONMENT: "staging"
+  when: manual
+  only:
+    - main
+    - develop
+
+manual_production_test:
+  extends: test:chromium
+  variables:
+    ENVIRONMENT: "production"
+  when: manual
+  only:
+    - main
