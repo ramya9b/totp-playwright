@@ -29,10 +29,49 @@ export class LoginPage extends BasePage {
   }
 
   /**
+   * Handle account selection if it appears
+   */
+  async handleAccountSelection(email: string): Promise<boolean> {
+    this.log('🔍 Checking for account selection screen...');
+    
+    // Look for account tiles or email divs that match our email
+    const accountSelectors = [
+      `div[data-test-id="${email}"]`,
+      `div:has-text("${email}")`,
+      `div[title="${email}"]`,
+      `div.table:has-text("${email}")`,
+      `div[role="button"]:has-text("${email}")`,
+      `button:has-text("${email}")`
+    ];
+    
+    for (const selector of accountSelectors) {
+      const accountElement = this.page.locator(selector);
+      if (await this.isElementVisible(accountElement, 3000)) {
+        this.log(`✅ Found account selection for: ${email}`);
+        await this.clickElement(accountElement);
+        this.log('✅ Clicked account to select');
+        await this.page.waitForTimeout(2000);
+        return true;
+      }
+    }
+    
+    this.log('ℹ️ No account selection screen found');
+    return false;
+  }
+
+  /**
    * Enter email address
    */
   async enterEmail(email: string): Promise<void> {
     this.log(`📧 Entering email: ${email.substring(0, 3)}***${email.substring(email.indexOf('@'))}`);
+    
+    // First check if account selection screen is present
+    const accountSelected = await this.handleAccountSelection(email);
+    
+    if (accountSelected) {
+      this.log('✅ Account selected from picker');
+      return; // Skip email entry if account was selected
+    }
     
     await this.waitForElement('input[name="loginfmt"], input[type="email"]', 15000);
     await this.fillInput(this.emailInput, email);
@@ -92,7 +131,9 @@ export class LoginPage extends BasePage {
   async waitForLoginSuccess(targetUrl: string): Promise<void> {
     this.log('⏳ Waiting for login redirect...');
     
-    const timeout = this.getBrowserTimeout(60000);
+    // Use longer timeout in CI environment
+    const isCI = process.env.CI === 'true';
+    const timeout = isCI ? 120000 : this.getBrowserTimeout(60000); // 2 minutes in CI
     
     try {
       await this.page.waitForURL(url => {
@@ -108,6 +149,58 @@ export class LoginPage extends BasePage {
       this.log('⚠️ Login redirect timeout, checking current URL...');
       
       const currentUrl = this.getUrl();
+      
+      // Check if we're on a reprocess/account selection screen
+      if (currentUrl.includes('reprocess') || currentUrl.includes('select_account')) {
+        this.log('🔄 Detected reprocess/account selection, attempting recovery...');
+        
+        // Try to handle account selection again
+        const email = process.env.M365_USERNAME!;
+        const accountHandled = await this.handleAccountSelection(email);
+        
+        if (accountHandled) {
+          // Wait again for redirect after account selection
+          await this.page.waitForURL(url => {
+            const urlStr = url.toString();
+            return urlStr.includes('dynamics.com') || 
+                   urlStr.includes('operations.dynamics') || 
+                   urlStr.includes('sandbox.operations') ||
+                   urlStr.includes('businesscentral.dynamics.com');
+          }, { timeout: 60000 });
+          
+          this.log('✅ Login successful after account selection recovery');
+          return;
+        }
+        
+        // If account selection didn't work, try clicking through any remaining prompts
+        const continueSelectors = [
+          'input[type="submit"]',
+          'button[type="submit"]',
+          'input[value="Continue"]',
+          'button:has-text("Continue")',
+          'input[value="Next"]',
+          'button:has-text("Next")'
+        ];
+        
+        for (const selector of continueSelectors) {
+          const element = this.page.locator(selector);
+          if (await this.isElementVisible(element, 2000)) {
+            this.log(`🔄 Clicking continue button: ${selector}`);
+            await this.clickElement(element);
+            await this.page.waitForTimeout(3000);
+            
+            // Check if we're now on D365
+            const newUrl = this.getUrl();
+            if (newUrl.includes('dynamics.com') || 
+                newUrl.includes('operations.dynamics') ||
+                newUrl.includes('sandbox.operations')) {
+              this.log('✅ Login successful after continue button');
+              return;
+            }
+          }
+        }
+      }
+      
       if (currentUrl.includes('dynamics.com') || 
           currentUrl.includes('operations.dynamics') ||
           currentUrl.includes('sandbox.operations')) {
