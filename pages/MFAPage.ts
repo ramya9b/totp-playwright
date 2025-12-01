@@ -1,6 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
 import * as OTPAuth from 'otpauth';
+import { WindowsSecurityHelper } from '../utils/WindowsSecurityHelper';
 
 /**
  * MFA Page Object Model
@@ -53,23 +54,58 @@ export class MFAPage extends BasePage {
   }
 
   /**
-   * Handle Sign-in options flow (PIN instead of password/TOTP)
+   * Handle Sign-in options flow (Passkey/PIN instead of password/TOTP)
    */
   private async handleSignInOptions(): Promise<boolean> {
-    this.log('🔍 Checking for Sign-in options...');
+    this.log('🔍 Checking for Sign-in options or passkey prompt...');
     
+    // Wait for potential Windows Security passkey dialog
+    await this.page.waitForTimeout(3000);
+    
+    // Check if Windows Security dialog appeared
+    const pin = process.env.M365_PIN;
+    if (pin) {
+      this.log('🔍 Checking for Windows Security passkey dialog...');
+      const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
+      
+      if (dialogPresent) {
+        this.log('✅ Windows Security passkey dialog detected');
+        const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
+        
+        if (pinEntered) {
+          this.log('✅ PIN entered in Windows Security dialog');
+          // Wait for authentication to complete
+          await this.page.waitForTimeout(5000);
+          return true;
+        } else {
+          this.log('⚠️ Failed to enter PIN automatically, waiting for manual entry...');
+          await this.page.waitForTimeout(15000);
+        }
+      }
+    }
+    
+    // Check if authentication succeeded
+    const currentUrl = this.page.url();
+    if (!currentUrl.includes('login.microsoft') && !currentUrl.includes('microsoftonline')) {
+      this.log('✅ Authentication completed');
+      return true;
+    }
+    
+    // If still on login page, try clicking Sign-in options
     const signInOptionsSelectors = [
       'a:has-text("Sign-in options")',
       'button:has-text("Sign-in options")',
       'a:has-text("Sign in options")',
       'div:has-text("Sign-in options")',
       'a[data-bind*="signInOptions"]',
-      'div[data-bind*="signInOptions"]'
+      'div[data-bind*="signInOptions"]',
+      'a:has-text("Choose a different passkey")',
+      'button:has-text("Choose a different passkey")'
     ];
     
     for (const selector of signInOptionsSelectors) {
       const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 3000)) {
+      if (await this.isElementVisible(element, 2000)) {
         this.log('✅ Found "Sign-in options" link');
         await this.clickElement(element);
         this.log('✅ Clicked "Sign-in options"');
