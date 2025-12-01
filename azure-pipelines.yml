@@ -62,40 +62,40 @@ jobs:
 
   - script: |
       echo "=== Verifying Variable Group ==="
-      if [ -z "$(D365_USERNAME)" ]; then
-        echo "ERROR: D365_USERNAME is not set!"
+      if [ -z "$(M365_USERNAME)" ]; then
+        echo "ERROR: M365_USERNAME is not set!"
         exit 1
       fi
-      if [ -z "$(D365_PASSWORD)" ]; then
-        echo "ERROR: D365_PASSWORD is not set!"
+      if [ -z "$(M365_PASSWORD)" ]; then
+        echo "ERROR: M365_PASSWORD is not set!"
         exit 1
       fi
-      if [ -z "$(D365_TOTP_SECRET)" ]; then
-        echo "ERROR: D365_TOTP_SECRET is not set!"
+      if [ -z "$(TOTP_SECRET)" ]; then
+        echo "ERROR: TOTP_SECRET is not set!"
         exit 1
       fi
       echo "✅ All required variables are configured"
     displayName: 'Verify Variables'
     env:
-      D365_USERNAME: $(D365_USERNAME)
-      D365_PASSWORD: $(D365_PASSWORD)
-      D365_TOTP_SECRET: $(D365_TOTP_SECRET)
+      M365_USERNAME: $(M365_USERNAME)
+      M365_PASSWORD: $(M365_PASSWORD)
+      TOTP_SECRET: $(TOTP_SECRET)
 
   - script: |
-      echo "M365_USERNAME=$(D365_USERNAME)" > .env
-      echo "M365_PASSWORD=$(D365_PASSWORD)" >> .env
-      echo "TOTP_SECRET=$(D365_TOTP_SECRET)" >> .env
+      echo "M365_USERNAME=$(M365_USERNAME)" > .env
+      echo "M365_PASSWORD=$(M365_PASSWORD)" >> .env
+      echo "TOTP_SECRET=$(TOTP_SECRET)" >> .env
       echo "D365_URL=https://avs-isv-puat.sandbox.operations.dynamics.com" >> .env
       echo "=== Environment Configuration ==="
-      echo "Username configured: $(D365_USERNAME)"
-      echo "TOTP Secret length: ${#D365_TOTP_SECRET}"
+      echo "Username configured: $(M365_USERNAME)"
+      echo "TOTP Secret length: ${#TOTP_SECRET}"
       echo ".env file contents (masked):"
       cat .env | sed 's/\(PASSWORD=\).*/\1***/' | sed 's/\(SECRET=\).*/\1***/'
     displayName: 'Configure Environment'
     env:
-      D365_USERNAME: $(D365_USERNAME)
-      D365_PASSWORD: $(D365_PASSWORD)
-      D365_TOTP_SECRET: $(D365_TOTP_SECRET)
+      M365_USERNAME: $(M365_USERNAME)
+      M365_PASSWORD: $(M365_PASSWORD)
+      TOTP_SECRET: $(TOTP_SECRET)
 
   - script: |
       export CI=true
