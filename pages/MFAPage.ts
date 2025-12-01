@@ -22,6 +22,13 @@ export class MFAPage extends BasePage {
   async handleMFAAuthentication(): Promise<void> {
     this.log('🔍 Detecting MFA screen...');
     
+    // First check for Sign-in options (PIN option)
+    const signInOptionsHandled = await this.handleSignInOptions();
+    if (signInOptionsHandled) {
+      this.log('✅ Sign-in options handled successfully');
+      return;
+    }
+    
     const mfaDetectionStrategies = [
       () => this.detectDirectTOTPField(),
       () => this.detectSignInAnotherWay(),
@@ -43,6 +50,70 @@ export class MFAPage extends BasePage {
     } else {
       this.log('ℹ️ No MFA screen detected - checking if login completed');
     }
+  }
+
+  /**
+   * Handle Sign-in options flow (PIN instead of password/TOTP)
+   */
+  private async handleSignInOptions(): Promise<boolean> {
+    this.log('🔍 Checking for Sign-in options...');
+    
+    const signInOptionsSelectors = [
+      'a:has-text("Sign-in options")',
+      'button:has-text("Sign-in options")',
+      'a:has-text("Sign in options")',
+      'div:has-text("Sign-in options")',
+      'a[data-bind*="signInOptions"]',
+      'div[data-bind*="signInOptions"]'
+    ];
+    
+    for (const selector of signInOptionsSelectors) {
+      const element = this.page.locator(selector);
+      if (await this.isElementVisible(element, 3000)) {
+        this.log('✅ Found "Sign-in options" link');
+        await this.clickElement(element);
+        this.log('✅ Clicked "Sign-in options"');
+        await this.page.waitForTimeout(2000);
+        
+        // Now look for PIN option
+        const pinHandled = await this.handlePINOption();
+        return pinHandled;
+      }
+    }
+    
+    this.log('ℹ️ No "Sign-in options" found');
+    return false;
+  }
+
+  /**
+   * Handle PIN authentication option
+   */
+  private async handlePINOption(): Promise<boolean> {
+    this.log('🔍 Looking for PIN option...');
+    
+    const pinSelectors = [
+      'div[data-value="WindowsHello"]',
+      'button[data-value="WindowsHello"]',
+      'div:has-text("PIN")',
+      'button:has-text("PIN")',
+      'div:has-text("Windows Hello")',
+      'div[role="button"]:has-text("PIN")',
+      'a:has-text("PIN")'
+    ];
+    
+    for (const selector of pinSelectors) {
+      const element = this.page.locator(selector);
+      if (await this.isElementVisible(element, 2000)) {
+        this.log('✅ Found PIN option');
+        await this.clickElement(element);
+        this.log('✅ Clicked PIN option');
+        await this.page.waitForTimeout(2000);
+        return true;
+      }
+    }
+    
+    this.log('⚠️ PIN option not found, trying TOTP authentication');
+    return false;
   }
 
   /**

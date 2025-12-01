@@ -66,17 +66,19 @@ export class AuthenticationManager {
         return;
       }
       
-      // Step 3: Enter credentials
+      // Step 3: Enter email
       await this.loginPage.enterEmail(this.username);
-      await this.loginPage.enterPassword(this.password);
       
-      // Step 4: Handle MFA authentication
+      // Step 4: Try to enter password (if field exists)
+      const passwordEntered = await this.loginPage.enterPassword(this.password);
+      
+      // Step 5: Handle MFA authentication (includes PIN option if password not available)
       await this.mfaPage.handleMFAAuthentication();
       
-      // Step 5: Handle stay signed in prompt
+      // Step 6: Handle stay signed in prompt
       await this.loginPage.handleStaySignedInPrompt();
       
-      // Step 6: Wait for successful login
+      // Step 7: Wait for successful login
       await this.loginPage.waitForLoginSuccess(this.d365Url);
       
       // Step 7: Save session if requested

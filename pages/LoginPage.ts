@@ -170,24 +170,35 @@ export class LoginPage extends BasePage {
   }
 
   /**
-   * Enter password
+   * Enter password (if field exists)
    */
-  async enterPassword(password: string): Promise<void> {
-    this.log('🔑 Entering password...');
+  async enterPassword(password: string): Promise<boolean> {
+    this.log('🔑 Looking for password field...');
     
     const passwordTimeout = this.getBrowserTimeout(10000);
-    await this.waitForElement('input[name="passwd"], input[type="password"]', passwordTimeout);
-    await this.fillInput(this.passwordInput, password);
-    await this.clickElement(this.submitButton);
     
-    this.log('✅ Password entered and submitted');
-    
-    // Wait for password submission processing
-    await this.waitWithBrowserTiming(4000);
-    
-    // Check for account selection screen after password
-    const email = process.env.M365_USERNAME!;
-    await this.handleAccountSelection(email);
+    try {
+      // Check if password field exists
+      await this.waitForElement('input[name="passwd"], input[type="password"]', passwordTimeout);
+      this.log('✅ Password field found');
+      
+      await this.fillInput(this.passwordInput, password);
+      await this.clickElement(this.submitButton);
+      
+      this.log('✅ Password entered and submitted');
+      
+      // Wait for password submission processing
+      await this.waitWithBrowserTiming(4000);
+      
+      // Check for account selection screen after password
+      const email = process.env.M365_USERNAME!;
+      await this.handleAccountSelection(email);
+      
+      return true;
+    } catch (error) {
+      this.log('⚠️ Password field not found - may need alternative authentication (PIN)');
+      return false;
+    }
   }
 
   /**
