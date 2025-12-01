@@ -1,12 +1,10 @@
 # Azure DevOps Pipeline for Playwright TOTP Tests
-# Azure Pipelines YAML Configuration
 
 trigger:
   branches:
     include:
     - main
     - develop
-    - feature/*
   paths:
     include:
     - tests/*
@@ -20,13 +18,6 @@ pr:
     include:
     - main
     - develop
-  paths:
-    include:
-    - tests/*
-    - pages/*
-    - utils/*
-    - playwright.config.ts
-    - package.json
 
 schedules:
 # Daily at 9:00 AM IST (3:30 AM UTC)
@@ -37,7 +28,7 @@ schedules:
     - main
   always: true
 
-# Daily at 6:00 PM IST (12:30 PM UTC) - End of day run
+# Daily at 6:00 PM IST (12:30 PM UTC)
 - cron: "30 12 * * *"
   displayName: Daily 6:00 PM IST
   branches:
@@ -46,240 +37,78 @@ schedules:
   always: true
 
 variables:
-  - group: D365-Credentials # Variable group with D365 credentials
+  - group: D365-Credentials
   - name: nodeVersion
     value: '18.x'
-  - name: javaVersion
-    value: '11'
 
-stages:
-- stage: Test
-  displayName: 'Test Execution'
-  jobs:
-  - job: PlaywrightTests
-    displayName: 'Playwright TOTP Tests'
-    pool:
-      vmImage: 'ubuntu-latest'
-    
-    strategy:
-      matrix:
-        Chromium:
-          browserName: 'chromium'
-          projectName: 'Desktop Chrome'
-        Firefox:
-          browserName: 'firefox'
-          projectName: 'Desktop Firefox'
-        Safari:
-          browserName: 'webkit'
-          projectName: 'Desktop Safari'
-    
-    timeoutInMinutes: 30
-    
-    steps:
-    - task: NodeTool@0
-      displayName: '⚙️ Setup Node.js'
-      inputs:
-        versionSpec: $(nodeVersion)
-        
-    - task: JavaToolInstaller@0
-      displayName: '☕ Setup Java for Allure'
-      inputs:
-        versionSpec: $(javaVersion)
-        jdkArchitectureOption: 'x64'
-        jdkSourceOption: 'PreInstalled'
+jobs:
+- job: PlaywrightTests
+  displayName: 'Playwright TOTP Tests'
+  pool:
+    vmImage: 'ubuntu-latest'
+  
+  strategy:
+    matrix:
+      Chromium:
+        browserName: 'chromium'
+      Firefox:
+        browserName: 'firefox'
+      WebKit:
+        browserName: 'webkit'
+  
+  timeoutInMinutes: 30
+  
+  steps:
+  - task: NodeTool@0
+    displayName: 'Setup Node.js'
+    inputs:
+      versionSpec: $(nodeVersion)
 
-    - script: |
-        npm ci
-        npx playwright install --with-deps $(browserName)
-        npm install -g allure-commandline
-      displayName: '📦 Install Dependencies'
+  - script: |
+      npm ci
+      npx playwright install --with-deps $(browserName)
+    displayName: 'Install Dependencies'
 
-    - script: |
-        echo "D365_URL=$(D365_URL)" >> .env
-        echo "D365_EMAIL=$(D365_EMAIL)" >> .env
-        echo "D365_PASSWORD=$(D365_PASSWORD)" >> .env
-        echo "TOTP_SECRET=$(TOTP_SECRET)" >> .env
-        echo "CI=true" >> .env
-      displayName: '🔐 Configure Environment'
-      env:
-        D365_URL: $(D365_URL)
-        D365_EMAIL: $(D365_EMAIL)
-        D365_PASSWORD: $(D365_PASSWORD)
-        TOTP_SECRET: $(TOTP_SECRET)
+  - script: |
+      echo "D365_USERNAME=$(D365_USERNAME)" >> .env
+      echo "D365_PASSWORD=$(D365_PASSWORD)" >> .env
+      echo "TOTP_SECRET=$(D365_TOTP_SECRET)" >> .env
+      echo "D365_URL=https://avs-isv-puat.sandbox.operations.dynamics.com" >> .env
+    displayName: 'Configure Environment'
+    env:
+      D365_USERNAME: $(D365_USERNAME)
+      D365_PASSWORD: $(D365_PASSWORD)
+      D365_TOTP_SECRET: $(D365_TOTP_SECRET)
 
-    - script: |
-        echo "🚀 Starting Playwright tests with $(browserName) browser"
-        npm run test:all-reports
-      displayName: '🧪 Run Playwright Tests'
-      continueOnError: true
-      env:
-        BROWSER: $(browserName)
-        ENVIRONMENT: 'staging'
+  - script: |
+      npx playwright test --project=$(browserName)
+    displayName: 'Run Playwright Tests'
+    continueOnError: true
+    env:
+      BROWSER: $(browserName)
 
-    - script: |
-        echo "📈 Generating Allure report..."
-        allure generate allure-results --clean -o allure-report
-        echo "✅ Allure report generated successfully"
-      displayName: '📊 Generate Allure Report'
-      condition: always()
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    condition: always()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/junit-results.xml'
+      testRunTitle: 'Playwright Tests - $(browserName)'
+      mergeTestResults: true
+      failTaskOnFailedTests: false
 
-    - task: PublishTestResults@2
-      displayName: '📋 Publish Test Results'
-      condition: always()
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: 'test-results/results.xml'
-        testRunTitle: 'Playwright Tests - $(browserName)'
-        mergeTestResults: false
-        failTaskOnFailedTests: false
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Playwright HTML Report'
+    condition: always()
+    inputs:
+      pathToPublish: 'playwright-report'
+      artifactName: 'playwright-report-$(browserName)'
+      publishLocation: 'Container'
 
-    - task: PublishHtmlReport@1
-      displayName: '🌟 Publish Allure Report'
-      condition: always()
-      inputs:
-        reportDir: 'allure-report'
-        tabName: 'Allure Report - $(browserName)'
-
-    - task: PublishHtmlReport@1
-      displayName: '🏠 Publish Playwright HTML Report'
-      condition: always()
-      inputs:
-        reportDir: 'playwright-report'
-        tabName: 'Playwright Report - $(browserName)'
-
-    - task: PublishBuildArtifacts@1
-      displayName: '📸 Publish Screenshots'
-      condition: always()
-      inputs:
-        pathToPublish: 'screenshots'
-        artifactName: 'screenshots-$(browserName)-$(Build.BuildNumber)'
-        publishLocation: 'Container'
-
-    - task: PublishBuildArtifacts@1
-      displayName: '📹 Publish Videos'
-      condition: always()
-      inputs:
-        pathToPublish: 'test-results'
-        artifactName: 'videos-$(browserName)-$(Build.BuildNumber)'
-        publishLocation: 'Container'
-
-    - task: PublishBuildArtifacts@1
-      displayName: '📊 Publish Custom Visual Report'
-      condition: always()
-      inputs:
-        pathToPublish: 'visual-report.html'
-        artifactName: 'visual-report-$(browserName)-$(Build.BuildNumber)'
-        publishLocation: 'Container'
-
-- stage: Notify
-  displayName: 'Notifications'
-  dependsOn: Test
-  condition: always()
-  jobs:
-  - job: SendNotifications
-    displayName: 'Send Notifications'
-    pool:
-      vmImage: 'ubuntu-latest'
-    
-    steps:
-    - task: InvokeRESTAPI@1
-      displayName: '📱 Slack Notification'
-      condition: and(always(), ne(variables['SLACK_WEBHOOK'], ''))
-      inputs:
-        connectionType: 'connectedServiceName'
-        serviceConnection: 'slack-webhook'
-        method: 'POST'
-        headers: |
-          Content-Type: application/json
-        body: |
-          {
-            "text": "🎭 Playwright Test Results",
-            "attachments": [
-              {
-                "color": "$(Agent.JobStatus == 'Succeeded' ? 'good' : 'danger')",
-                "fields": [
-                  {
-                    "title": "Status",
-                    "value": "$(Agent.JobStatus == 'Succeeded' ? '✅ Passed' : '❌ Failed')",
-                    "short": true
-                  },
-                  {
-                    "title": "Build",
-                    "value": "$(Build.BuildNumber)",
-                    "short": true
-                  },
-                  {
-                    "title": "Branch",
-                    "value": "$(Build.SourceBranchName)",
-                    "short": true
-                  },
-                  {
-                    "title": "Environment",
-                    "value": "staging",
-                    "short": true
-                  }
-                ],
-                "actions": [
-                  {
-                    "type": "button",
-                    "text": "📊 View Reports",
-                    "url": "$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
-                  }
-                ]
-              }
-            ]
-          }
-
-    - task: InvokeRESTAPI@1
-      displayName: '💬 Teams Notification'
-      condition: and(always(), ne(variables['TEAMS_WEBHOOK'], ''))
-      inputs:
-        connectionType: 'connectedServiceName'
-        serviceConnection: 'teams-webhook'
-        method: 'POST'
-        headers: |
-          Content-Type: application/json
-        body: |
-          {
-            "@type": "MessageCard",
-            "@context": "https://schema.org/extensions",
-            "summary": "Playwright Test Results",
-            "themeColor": "$(Agent.JobStatus == 'Succeeded' ? '28a745' : 'dc3545')",
-            "sections": [
-              {
-                "activityTitle": "🎭 Playwright TOTP Test Results",
-                "activitySubtitle": "Build $(Build.BuildNumber)",
-                "facts": [
-                  {
-                    "name": "Status:",
-                    "value": "$(Agent.JobStatus == 'Succeeded' ? '✅ Passed' : '❌ Failed')"
-                  },
-                  {
-                    "name": "Branch:",
-                    "value": "$(Build.SourceBranchName)"
-                  },
-                  {
-                    "name": "Environment:",
-                    "value": "staging"
-                  },
-                  {
-                    "name": "Requested by:",
-                    "value": "$(Build.RequestedFor)"
-                  }
-                ],
-                "markdown": true
-              }
-            ],
-            "potentialAction": [
-              {
-                "@type": "OpenUri",
-                "name": "📊 View Build Results",
-                "targets": [
-                  {
-                    "os": "default",
-                    "uri": "$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
-                  }
-                ]
-              }
-            ]
-          }
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Test Results & Screenshots'
+    condition: always()
+    inputs:
+      pathToPublish: 'test-results'
+      artifactName: 'test-results-$(browserName)'
+      publishLocation: 'Container'
