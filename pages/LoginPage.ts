@@ -181,6 +181,34 @@ export class LoginPage extends BasePage {
     const passwordTimeout = this.getBrowserTimeout(10000);
     
     try {
+      // First check for "Sign in another way" link (appears when passkey is default)
+      await this.page.waitForTimeout(2000);
+      
+      const signInAnotherWaySelectors = [
+        'a:has-text("Sign in another way")',
+        'button:has-text("Sign in another way")',
+        'div[role="link"]:has-text("Sign in another way")',
+        'a:has-text("Sign-in options")'
+      ];
+      
+      for (const selector of signInAnotherWaySelectors) {
+        const element = this.page.locator(selector);
+        if (await this.isElementVisible(element, 2000)) {
+          this.log('✅ Found "Sign in another way" link');
+          await this.clickElement(element);
+          this.log('✅ Clicked "Sign in another way"');
+          await this.page.waitForTimeout(2000);
+          
+          // Now look for "Use my password" option
+          const passwordOptionHandled = await this.selectPasswordOption();
+          if (passwordOptionHandled) {
+            this.log('✅ Selected "Use my password" option');
+            await this.page.waitForTimeout(2000);
+          }
+          break;
+        }
+      }
+      
       // Check if password field exists
       await this.waitForElement('input[name="passwd"], input[type="password"]', passwordTimeout);
       this.log('✅ Password field found');
@@ -202,6 +230,35 @@ export class LoginPage extends BasePage {
       this.log('⚠️ Password field not found - may need alternative authentication (PIN)');
       return false;
     }
+  }
+
+  /**
+   * Select "Use my password" option from sign-in options
+   */
+  private async selectPasswordOption(): Promise<boolean> {
+    this.log('🔍 Looking for "Use my password" option...');
+    
+    const passwordOptionSelectors = [
+      'div[data-value="Password"]',
+      'button[data-value="Password"]',
+      'div:has-text("Use my password")',
+      'button:has-text("Use my password")',
+      'div[role="button"]:has-text("password")',
+      'div.tile:has-text("password")'
+    ];
+    
+    for (const selector of passwordOptionSelectors) {
+      const element = this.page.locator(selector);
+      if (await this.isElementVisible(element, 3000)) {
+        this.log('✅ Found "Use my password" option');
+        await this.clickElement(element);
+        this.log('✅ Clicked "Use my password" option');
+        return true;
+      }
+    }
+    
+    this.log('⚠️ "Use my password" option not found');
+    return false;
   }
 
   /**

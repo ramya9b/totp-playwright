@@ -141,11 +141,55 @@ export class MFAPage extends BasePage {
    * Handle PIN authentication option
    */
   private async handlePINOption(): Promise<boolean> {
-    this.log('🔍 Looking for PIN option...');
+    this.log('🔍 Looking for PIN/passkey option...');
     
-    const pinSelectors = [
+    // First check for "Face, fingerprint, PIN or security key" option
+    const passkeyOptionSelectors = [
       'div[data-value="WindowsHello"]',
       'button[data-value="WindowsHello"]',
+      'div:has-text("Face, fingerprint, PIN or security key")',
+      'button:has-text("Face, fingerprint, PIN or security key")',
+      'div[role="button"]:has-text("Face, fingerprint")',
+      'div.tile:has-text("Face, fingerprint")'
+    ];
+    
+    for (const selector of passkeyOptionSelectors) {
+      const element = this.page.locator(selector);
+      if (await this.isElementVisible(element, 2000)) {
+        this.log('✅ Found "Face, fingerprint, PIN or security key" option');
+        await this.clickElement(element);
+        this.log('✅ Clicked passkey/PIN option');
+        await this.page.waitForTimeout(3000);
+        
+        // After clicking, Windows Security dialog should appear
+        const pin = process.env.M365_PIN;
+        if (pin) {
+          this.log('🔍 Checking for Windows Security dialog after selecting PIN option...');
+          const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
+          
+          if (dialogPresent) {
+            this.log('✅ Windows Security dialog detected');
+            const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
+            
+            if (pinEntered) {
+              this.log('✅ PIN entered in Windows Security dialog');
+              await this.page.waitForTimeout(5000);
+              return true;
+            }
+          }
+        }
+        
+        // Also try entering PIN in web-based field if present
+        const pinEntered = await this.enterPIN();
+        if (pinEntered) {
+          this.log('✅ PIN authentication completed');
+          return true;
+        }
+      }
+    }
+    
+    // Also check for direct PIN options
+    const pinSelectors = [
       'div:has-text("PIN")',
       'button:has-text("PIN")',
       'div:has-text("Windows Hello")',
