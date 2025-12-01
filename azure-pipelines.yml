@@ -81,7 +81,7 @@ jobs:
       D365_TOTP_SECRET: $(D365_TOTP_SECRET)
 
   - script: |
-      npx playwright test --project=$(browserName)
+      npx playwright test --project=$(browserName) --reporter=html,junit
     displayName: 'Run Playwright Tests'
     continueOnError: true
     env:
@@ -92,14 +92,14 @@ jobs:
     condition: always()
     inputs:
       testResultsFormat: 'JUnit'
-      testResultsFiles: '**/junit-results.xml'
+      testResultsFiles: '**/results.xml'
       testRunTitle: 'Playwright Tests - $(browserName)'
       mergeTestResults: true
       failTaskOnFailedTests: false
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Playwright HTML Report'
-    condition: always()
+    condition: and(always(), eq(variables['Agent.JobStatus'], 'Succeeded'))
     inputs:
       pathToPublish: 'playwright-report'
       artifactName: 'playwright-report-$(browserName)'
@@ -112,3 +112,18 @@ jobs:
       pathToPublish: 'test-results'
       artifactName: 'test-results-$(browserName)'
       publishLocation: 'Container'
+
+  - script: |
+      echo "Test execution completed for $(browserName)"
+      if [ -d "playwright-report" ]; then
+        echo "Playwright HTML report generated"
+        ls -la playwright-report
+      else
+        echo "No HTML report found"
+      fi
+      if [ -d "test-results" ]; then
+        echo "Test results available"
+        ls -la test-results
+      fi
+    displayName: 'Check Reports'
+    condition: always()
