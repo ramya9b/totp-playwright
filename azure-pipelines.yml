@@ -283,19 +283,3 @@ stages:
               }
             ]
           }
-
-# Quality Gates Configuration
-# Add this to your Azure DevOps project settings
-
-quality_gates:
-  - name: "Test Pass Rate"
-    threshold: 95
-    metric: "test_pass_percentage"
-    
-  - name: "Test Duration"
-    threshold: 300  # 5 minutes
-    metric: "average_test_duration_seconds"
-    
-  - name: "Critical Bugs"
-    threshold: 0
-    metric: "critical_bug_count"
