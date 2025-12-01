@@ -29,8 +29,17 @@ pr:
     - package.json
 
 schedules:
-- cron: "0 6 * * *"
-  displayName: Daily 6 AM UTC
+# Daily at 9:00 AM IST (3:30 AM UTC)
+- cron: "30 3 * * *"
+  displayName: Daily 9:00 AM IST
+  branches:
+    include:
+    - main
+  always: true
+
+# Daily at 6:00 PM IST (12:30 PM UTC) - End of day run
+- cron: "30 12 * * *"
+  displayName: Daily 6:00 PM IST
   branches:
     include:
     - main
