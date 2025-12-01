@@ -35,7 +35,7 @@ export class LoginPage extends BasePage {
     this.log('🔍 Checking for account selection screen...');
     
     // Wait a bit for the page to render
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForTimeout(3000);
     
     // Check if we're on account selection/reprocess screen
     const currentUrl = this.getUrl();
@@ -45,6 +45,16 @@ export class LoginPage extends BasePage {
     }
     
     this.log('✅ Detected account selection/reprocess screen');
+    
+    // Save HTML snapshot for debugging
+    const fs = require('fs');
+    if (!fs.existsSync('screenshots')) {
+      fs.mkdirSync('screenshots');
+    }
+    const html = await this.page.content();
+    fs.writeFileSync('screenshots/account-selection-page.html', html);
+    await this.page.screenshot({ path: 'screenshots/account-selection-page.png', fullPage: true });
+    this.log('📸 Saved account selection page snapshot');
     
     // Strategy 1: Look for exact email match in clickable elements
     const accountSelectors = [
@@ -105,6 +115,18 @@ export class LoginPage extends BasePage {
         await this.page.waitForTimeout(3000);
         return true;
       }
+    }
+    
+    // Strategy 4: Log all buttons/clickable elements for debugging
+    this.log('🔍 Scanning for all clickable elements...');
+    const allButtons = await this.page.locator('button, input[type="submit"], input[type="button"], div[role="button"], a[role="button"]').all();
+    this.log(`Found ${allButtons.length} clickable elements total`);
+    
+    for (let i = 0; i < Math.min(allButtons.length, 10); i++) {
+      const text = await allButtons[i].textContent().catch(() => 'N/A');
+      const tag = await allButtons[i].evaluate(el => el.tagName).catch(() => 'N/A');
+      const classes = await allButtons[i].evaluate(el => el.className).catch(() => 'N/A');
+      this.log(`  [${i}] ${tag}.${classes}: "${text}"`);
     }
     
     this.log('⚠️ Could not find clickable account element');
