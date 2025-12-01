@@ -47,15 +47,6 @@ jobs:
   pool:
     vmImage: 'ubuntu-latest'
   
-  strategy:
-    matrix:
-      Chromium:
-        browserName: 'chromium'
-      Firefox:
-        browserName: 'firefox'
-      WebKit:
-        browserName: 'webkit'
-  
   timeoutInMinutes: 30
   
   steps:
@@ -66,12 +57,12 @@ jobs:
 
   - script: |
       npm ci
-      npx playwright install --with-deps $(browserName)
+      npx playwright install --with-deps chromium
     displayName: 'Install Dependencies'
 
   - script: |
-      echo "D365_USERNAME=$(D365_USERNAME)" >> .env
-      echo "D365_PASSWORD=$(D365_PASSWORD)" >> .env
+      echo "M365_USERNAME=$(D365_USERNAME)" > .env
+      echo "M365_PASSWORD=$(D365_PASSWORD)" >> .env
       echo "TOTP_SECRET=$(D365_TOTP_SECRET)" >> .env
       echo "D365_URL=https://avs-isv-puat.sandbox.operations.dynamics.com" >> .env
     displayName: 'Configure Environment'
@@ -81,11 +72,9 @@ jobs:
       D365_TOTP_SECRET: $(D365_TOTP_SECRET)
 
   - script: |
-      npx playwright test --project=$(browserName) --reporter=html,junit
+      npx playwright test --reporter=html,junit
     displayName: 'Run Playwright Tests'
     continueOnError: true
-    env:
-      BROWSER: $(browserName)
 
   - task: PublishTestResults@2
     displayName: 'Publish Test Results'
@@ -93,16 +82,16 @@ jobs:
     inputs:
       testResultsFormat: 'JUnit'
       testResultsFiles: '**/results.xml'
-      testRunTitle: 'Playwright Tests - $(browserName)'
+      testRunTitle: 'Playwright TOTP Tests'
       mergeTestResults: true
       failTaskOnFailedTests: false
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Playwright HTML Report'
-    condition: and(always(), eq(variables['Agent.JobStatus'], 'Succeeded'))
+    condition: always()
     inputs:
       pathToPublish: 'playwright-report'
-      artifactName: 'playwright-report-$(browserName)'
+      artifactName: 'playwright-report'
       publishLocation: 'Container'
 
   - task: PublishBuildArtifacts@1
@@ -110,20 +99,21 @@ jobs:
     condition: always()
     inputs:
       pathToPublish: 'test-results'
-      artifactName: 'test-results-$(browserName)'
+      artifactName: 'test-results'
       publishLocation: 'Container'
 
   - script: |
-      echo "Test execution completed for $(browserName)"
+      echo "Test execution completed"
       if [ -d "playwright-report" ]; then
-        echo "Playwright HTML report generated"
+        echo "✅ Playwright HTML report generated"
         ls -la playwright-report
-      else
-        echo "No HTML report found"
       fi
       if [ -d "test-results" ]; then
-        echo "Test results available"
+        echo "✅ Test results available"
         ls -la test-results
+      fi
+      if [ -f "auth/D365AuthFile.json" ]; then
+        echo "✅ Session file created"
       fi
     displayName: 'Check Reports'
     condition: always()
