@@ -108,11 +108,80 @@ export class MFAPage extends BasePage {
         await this.clickElement(element);
         this.log('✅ Clicked PIN option');
         await this.page.waitForTimeout(2000);
-        return true;
+        
+        // Enter PIN after selecting PIN option
+        const pinEntered = await this.enterPIN();
+        if (pinEntered) {
+          this.log('✅ PIN authentication completed');
+          return true;
+        }
       }
     }
     
     this.log('⚠️ PIN option not found, trying TOTP authentication');
+    return false;
+  }
+
+  /**
+   * Enter PIN in the PIN field
+   */
+  private async enterPIN(): Promise<boolean> {
+    this.log('🔍 Looking for PIN input field...');
+    
+    const pin = process.env.M365_PIN;
+    if (!pin) {
+      this.log('⚠️ M365_PIN not found in environment variables');
+      return false;
+    }
+    
+    const pinInputSelectors = [
+      'input[type="password"][name="pin"]',
+      'input[type="password"][placeholder*="PIN"]',
+      'input[type="password"][placeholder*="pin"]',
+      'input[name="pin"]',
+      'input[id*="pin"]',
+      'input[type="password"]',
+      'input[aria-label*="PIN"]',
+      'input[aria-label*="pin"]'
+    ];
+    
+    for (const selector of pinInputSelectors) {
+      const element = this.page.locator(selector);
+      if (await this.isElementVisible(element, 3000)) {
+        this.log(`✅ Found PIN input field with selector: ${selector}`);
+        await element.clear();
+        await element.fill(pin);
+        this.log('✅ PIN entered');
+        
+        // Look for submit button
+        const submitSelectors = [
+          'input[type="submit"]',
+          'button[type="submit"]',
+          'button:has-text("Sign in")',
+          'button:has-text("Submit")',
+          'button:has-text("Continue")',
+          'input[value="Sign in"]'
+        ];
+        
+        for (const submitSelector of submitSelectors) {
+          const submitBtn = this.page.locator(submitSelector);
+          if (await this.isElementVisible(submitBtn, 2000)) {
+            await this.clickElement(submitBtn);
+            this.log('✅ Clicked submit button after PIN entry');
+            await this.page.waitForTimeout(3000);
+            return true;
+          }
+        }
+        
+        // If no submit button found, try pressing Enter
+        await element.press('Enter');
+        this.log('✅ Pressed Enter after PIN entry');
+        await this.page.waitForTimeout(3000);
+        return true;
+      }
+    }
+    
+    this.log('⚠️ PIN input field not found');
     return false;
   }
 
