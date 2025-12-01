@@ -72,9 +72,12 @@ jobs:
       D365_TOTP_SECRET: $(D365_TOTP_SECRET)
 
   - script: |
+      export CI=true
       npx playwright test --reporter=html,junit
     displayName: 'Run Playwright Tests'
     continueOnError: true
+    env:
+      CI: true
 
   - task: PublishTestResults@2
     displayName: 'Publish Test Results'
