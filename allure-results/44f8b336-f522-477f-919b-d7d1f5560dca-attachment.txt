@@ -1,0 +1,11 @@
+❌ Authentication flow failed: page.screenshot: Target page, context or browser has been closed
+    at LoginPage.takeScreenshot (C:\Users\RamyaBIN\totp-playwright\pages\BasePage.ts:41:21)
+    at LoginPage.saveDebugInfo (C:\Users\RamyaBIN\totp-playwright\pages\BasePage.ts:125:16)
+    at LoginPage.waitForLoginSuccess (C:\Users\RamyaBIN\totp-playwright\pages\LoginPage.ts:315:18)
+    at AuthenticationManager.performCompleteLogin (C:\Users\RamyaBIN\totp-playwright\pages\AuthenticationManager.ts:82:7)
+    at C:\Users\RamyaBIN\totp-playwright\tests\login-setup.spec.ts:31:5
+❌ Login failed: page.screenshot: Target page, context or browser has been closed
+    at LoginPage.takeScreenshot (C:\Users\RamyaBIN\totp-playwright\pages\BasePage.ts:41:21)
+    at LoginPage.saveDebugInfo (C:\Users\RamyaBIN\totp-playwright\pages\BasePage.ts:125:16)
+    at AuthenticationManager.performCompleteLogin (C:\Users\RamyaBIN\totp-playwright\pages\AuthenticationManager.ts:96:28)
+    at C:\Users\RamyaBIN\totp-playwright\tests\login-setup.spec.ts:31:5

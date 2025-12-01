@@ -57,29 +57,71 @@ export class MFAPage extends BasePage {
    * Handle Sign-in options flow (Passkey/PIN instead of password/TOTP)
    */
   private async handleSignInOptions(): Promise<boolean> {
-    this.log('🔍 Checking for Sign-in options or passkey prompt...');
+    this.log('🔍 Checking for passkey prompt or Sign-in options...');
     
-    // Wait for potential Windows Security passkey dialog
-    await this.page.waitForTimeout(3000);
+    // Wait a moment for page to load after email entry
+    await this.page.waitForTimeout(2000);
     
-    // Check if Windows Security dialog appeared
-    const pin = process.env.M365_PIN;
-    if (pin) {
-      this.log('🔍 Checking for Windows Security passkey dialog...');
-      const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
+    // Check if we're on the passkey/fingerprint screen
+    const passkeyIndicators = [
+      'text="Scan your finger on the fingerprint reader"',
+      'text="Sign in with a passkey"',
+      'text="Windows Security"',
+      'div:has-text("passkey")',
+      'div:has-text("fingerprint")'
+    ];
+    
+    let onPasskeyScreen = false;
+    for (const indicator of passkeyIndicators) {
+      if (await this.isElementVisible(this.page.locator(indicator), 1000)) {
+        this.log('✅ Detected passkey/fingerprint screen');
+        onPasskeyScreen = true;
+        break;
+      }
+    }
+    
+    if (onPasskeyScreen) {
+      // Look for "Sign-in options" link on the passkey screen
+      const signInOptionsSelectors = [
+        'a:has-text("Sign-in options")',
+        'button:has-text("Sign-in options")',
+        'div[role="link"]:has-text("Sign-in options")'
+      ];
       
-      if (dialogPresent) {
-        this.log('✅ Windows Security passkey dialog detected');
-        const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
+      for (const selector of signInOptionsSelectors) {
+        const element = this.page.locator(selector);
+        if (await this.isElementVisible(element, 2000)) {
+          this.log('✅ Found "Sign-in options" link on passkey screen');
+          await this.clickElement(element);
+          this.log('✅ Clicked "Sign-in options"');
+          await this.page.waitForTimeout(2000);
+          
+          // Now look for PIN option in the sign-in options menu
+          const pinHandled = await this.handlePINOption();
+          if (pinHandled) {
+            return true;
+          }
+        }
+      }
+      
+      // If Sign-in options not found, check for Windows Security dialog
+      const pin = process.env.M365_PIN;
+      if (pin) {
+        this.log('🔍 Checking for Windows Security passkey dialog...');
+        const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
         
-        if (pinEntered) {
-          this.log('✅ PIN entered in Windows Security dialog');
-          // Wait for authentication to complete
-          await this.page.waitForTimeout(5000);
-          return true;
-        } else {
-          this.log('⚠️ Failed to enter PIN automatically, waiting for manual entry...');
-          await this.page.waitForTimeout(15000);
+        if (dialogPresent) {
+          this.log('✅ Windows Security passkey dialog detected');
+          const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
+          
+          if (pinEntered) {
+            this.log('✅ PIN entered in Windows Security dialog');
+            await this.page.waitForTimeout(5000);
+            return true;
+          } else {
+            this.log('⚠️ Failed to enter PIN automatically, waiting for manual entry...');
+            await this.page.waitForTimeout(15000);
+          }
         }
       }
     }
@@ -91,33 +133,7 @@ export class MFAPage extends BasePage {
       return true;
     }
     
-    // If still on login page, try clicking Sign-in options
-    const signInOptionsSelectors = [
-      'a:has-text("Sign-in options")',
-      'button:has-text("Sign-in options")',
-      'a:has-text("Sign in options")',
-      'div:has-text("Sign-in options")',
-      'a[data-bind*="signInOptions"]',
-      'div[data-bind*="signInOptions"]',
-      'a:has-text("Choose a different passkey")',
-      'button:has-text("Choose a different passkey")'
-    ];
-    
-    for (const selector of signInOptionsSelectors) {
-      const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 2000)) {
-        this.log('✅ Found "Sign-in options" link');
-        await this.clickElement(element);
-        this.log('✅ Clicked "Sign-in options"');
-        await this.page.waitForTimeout(2000);
-        
-        // Now look for PIN option
-        const pinHandled = await this.handlePINOption();
-        return pinHandled;
-      }
-    }
-    
-    this.log('ℹ️ No "Sign-in options" found');
+    this.log('ℹ️ No passkey screen or Sign-in options found');
     return false;
   }
 

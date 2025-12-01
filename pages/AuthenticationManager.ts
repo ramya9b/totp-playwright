@@ -69,19 +69,24 @@ export class AuthenticationManager {
       // Step 3: Enter email
       await this.loginPage.enterEmail(this.username);
       
-      // Step 4: Try to enter password (if field exists)
-      const passwordEntered = await this.loginPage.enterPassword(this.password);
-      
-      // Step 5: Handle MFA authentication (includes PIN option if password not available)
+      // Step 4: Check for passkey dialog first (appears after email)
       await this.mfaPage.handleMFAAuthentication();
       
-      // Step 6: Handle stay signed in prompt
+      // Step 5: Try to enter password (if field exists and passkey didn't work)
+      const passwordEntered = await this.loginPage.enterPassword(this.password);
+      
+      // Step 6: Handle MFA authentication again if password was entered
+      if (passwordEntered) {
+        await this.mfaPage.handleMFAAuthentication();
+      }
+      
+      // Step 7: Handle stay signed in prompt
       await this.loginPage.handleStaySignedInPrompt();
       
-      // Step 7: Wait for successful login
+      // Step 8: Wait for successful login
       await this.loginPage.waitForLoginSuccess(this.d365Url);
       
-      // Step 7: Save session if requested
+      // Step 9: Save session if requested
       if (saveSession) {
         await this.loginPage.saveSession();
       }

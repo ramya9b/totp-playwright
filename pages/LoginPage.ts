@@ -167,6 +167,9 @@ export class LoginPage extends BasePage {
     await this.clickElement(this.nextButton);
     
     this.log('✅ Email entered and submitted');
+    
+    // Wait for next screen to load (could be password or passkey dialog)
+    await this.page.waitForTimeout(3000);
   }
 
   /**
