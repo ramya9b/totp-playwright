@@ -71,7 +71,7 @@ export default defineConfig({
       testMatch: '**/login-setup.spec.ts',
       use: { 
         ...devices['Desktop Chrome'],
-        headless: false,
+        headless: process.env.CI ? true : false,
         screenshot: 'on' as const,
         video: 'on' as const,
         trace: 'on' as const,
@@ -85,7 +85,7 @@ export default defineConfig({
       use: { 
         ...devices['Desktop Chrome'],
         storageState: 'auth/D365AuthFile.json',
-        headless: false,
+        headless: process.env.CI ? true : false,
         screenshot: 'on' as const,
         video: 'on' as const,
         trace: 'on' as const,
