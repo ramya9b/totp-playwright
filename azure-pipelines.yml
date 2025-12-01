@@ -86,9 +86,32 @@ jobs:
       mergeTestResults: true
       failTaskOnFailedTests: false
 
+  - script: |
+      echo "Checking for generated reports..."
+      if [ -d "playwright-report" ]; then
+        echo "✅ Playwright HTML report found"
+        ls -la playwright-report
+      else
+        echo "⚠️ No Playwright HTML report found"
+      fi
+      if [ -d "test-results" ]; then
+        echo "✅ Test results directory found"
+        ls -la test-results
+      else
+        echo "⚠️ No test-results directory found"
+      fi
+      if [ -f "auth/D365AuthFile.json" ]; then
+        echo "✅ Session file created"
+      else
+        echo "⚠️ No session file found"
+      fi
+    displayName: 'Check Generated Files'
+    condition: always()
+
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Playwright HTML Report'
-    condition: always()
+    condition: and(always(), or(succeeded(), failed()))
+    continueOnError: true
     inputs:
       pathToPublish: 'playwright-report'
       artifactName: 'playwright-report'
@@ -96,24 +119,9 @@ jobs:
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Test Results & Screenshots'
-    condition: always()
+    condition: and(always(), or(succeeded(), failed()))
+    continueOnError: true
     inputs:
       pathToPublish: 'test-results'
       artifactName: 'test-results'
       publishLocation: 'Container'
-
-  - script: |
-      echo "Test execution completed"
-      if [ -d "playwright-report" ]; then
-        echo "✅ Playwright HTML report generated"
-        ls -la playwright-report
-      fi
-      if [ -d "test-results" ]; then
-        echo "✅ Test results available"
-        ls -la test-results
-      fi
-      if [ -f "auth/D365AuthFile.json" ]; then
-        echo "✅ Session file created"
-      fi
-    displayName: 'Check Reports'
-    condition: always()
