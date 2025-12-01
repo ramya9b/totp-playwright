@@ -67,16 +67,30 @@ export class LoginPage extends BasePage {
       `div[title*="${email}"]`,
       `div.row:has-text("${email}")`,
       `[data-bind*="account"]:has-text("${email}")`,
+      `a:has-text("${email}")`,
+      `span:has-text("${email}")`,
     ];
     
     for (const selector of accountSelectors) {
       const accountElement = this.page.locator(selector).first();
       if (await this.isElementVisible(accountElement, 2000)) {
         this.log(`✅ Found account tile: ${selector}`);
-        await this.clickElement(accountElement);
-        this.log('✅ Clicked account tile');
-        await this.page.waitForTimeout(3000);
-        return true;
+        // Try clicking the element or its parent
+        try {
+          await this.clickElement(accountElement);
+          this.log('✅ Clicked account tile');
+          await this.page.waitForTimeout(3000);
+          return true;
+        } catch {
+          // Try clicking parent
+          const parent = accountElement.locator('..');
+          if (await this.isElementVisible(parent, 1000)) {
+            await parent.click();
+            this.log('✅ Clicked account tile parent');
+            await this.page.waitForTimeout(3000);
+            return true;
+          }
+        }
       }
     }
     
