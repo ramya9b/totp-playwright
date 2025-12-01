@@ -34,28 +34,81 @@ export class LoginPage extends BasePage {
   async handleAccountSelection(email: string): Promise<boolean> {
     this.log('🔍 Checking for account selection screen...');
     
-    // Look for account tiles or email divs that match our email
+    // Wait a bit for the page to render
+    await this.page.waitForTimeout(2000);
+    
+    // Check if we're on account selection/reprocess screen
+    const currentUrl = this.getUrl();
+    if (!currentUrl.includes('select_account') && !currentUrl.includes('reprocess')) {
+      this.log('ℹ️ Not on account selection screen');
+      return false;
+    }
+    
+    this.log('✅ Detected account selection/reprocess screen');
+    
+    // Strategy 1: Look for exact email match in clickable elements
     const accountSelectors = [
-      `div[data-test-id="${email}"]`,
-      `div:has-text("${email}")`,
-      `div[title="${email}"]`,
+      `div[data-test-id*="${email}"]`,
+      `div[data-test-id]:has-text("${email}")`,
+      `div.table-cell:has-text("${email}")`,
       `div.table:has-text("${email}")`,
       `div[role="button"]:has-text("${email}")`,
-      `button:has-text("${email}")`
+      `button:has-text("${email}")`,
+      `div[title*="${email}"]`,
+      `div.row:has-text("${email}")`,
+      `[data-bind*="account"]:has-text("${email}")`,
     ];
     
     for (const selector of accountSelectors) {
-      const accountElement = this.page.locator(selector);
-      if (await this.isElementVisible(accountElement, 3000)) {
-        this.log(`✅ Found account selection for: ${email}`);
+      const accountElement = this.page.locator(selector).first();
+      if (await this.isElementVisible(accountElement, 2000)) {
+        this.log(`✅ Found account tile: ${selector}`);
         await this.clickElement(accountElement);
-        this.log('✅ Clicked account to select');
-        await this.page.waitForTimeout(2000);
+        this.log('✅ Clicked account tile');
+        await this.page.waitForTimeout(3000);
         return true;
       }
     }
     
-    this.log('ℹ️ No account selection screen found');
+    // Strategy 2: Look for email username (before @) in elements
+    const username = email.split('@')[0];
+    const usernameSelectors = [
+      `div:has-text("${username}")`,
+      `[data-test-id]:has-text("${username}")`,
+    ];
+    
+    for (const selector of usernameSelectors) {
+      const element = this.page.locator(selector).first();
+      if (await this.isElementVisible(element, 2000)) {
+        this.log(`✅ Found account by username: ${selector}`);
+        await this.clickElement(element);
+        this.log('✅ Clicked account by username');
+        await this.page.waitForTimeout(3000);
+        return true;
+      }
+    }
+    
+    // Strategy 3: Look for any clickable tile/row and click the first one
+    const genericSelectors = [
+      'div[data-test-id][role="button"]',
+      'div.table-row[role="button"]',
+      'div.tile[data-test-id]',
+    ];
+    
+    for (const selector of genericSelectors) {
+      const elements = this.page.locator(selector);
+      const count = await elements.count();
+      if (count > 0) {
+        this.log(`✅ Found ${count} account tiles, clicking first one`);
+        await elements.first().click();
+        this.log('✅ Clicked first account tile');
+        await this.page.waitForTimeout(3000);
+        return true;
+      }
+    }
+    
+    this.log('⚠️ Could not find clickable account element');
+    await this.saveDebugInfo('account-selection-failure');
     return false;
   }
 
@@ -95,6 +148,10 @@ export class LoginPage extends BasePage {
     
     // Wait for password submission processing
     await this.waitWithBrowserTiming(4000);
+    
+    // Check for account selection screen after password
+    const email = process.env.M365_USERNAME!;
+    await this.handleAccountSelection(email);
   }
 
   /**
