@@ -25,8 +25,9 @@ test.describe('🔐 D365 Authentication Setup', () => {
     test.setTimeout(180000); // 3 minutes timeout
   
     // Launch browser with stealth mode to prevent automation detection
+    // Use headless mode in CI/CD, headed mode for local debugging
     const browser = await chromium.launch({
-      headless: false,
+      headless: process.env.CI === 'true' || process.env.HEADLESS === 'true',
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=WebAuthenticationUI',
