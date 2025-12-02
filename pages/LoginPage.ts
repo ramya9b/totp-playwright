@@ -199,11 +199,15 @@ export class LoginPage extends BasePage {
           this.log('✅ Clicked "Sign in another way"');
           await this.page.waitForTimeout(2000);
           
-          // Now look for "Use my password" option
+          // Now look for authentication options (password or passkey)
           const passwordOptionHandled = await this.selectPasswordOption();
           if (passwordOptionHandled) {
-            this.log('✅ Selected "Use my password" option');
+            this.log('✅ Selected "Use my password" option, continuing to password entry');
             await this.page.waitForTimeout(2000);
+          } else {
+            // Passkey/PIN option was selected instead
+            this.log('ℹ️ Passkey/PIN option selected, will be handled by MFA flow');
+            return false; // Signal to skip password entry and use PIN flow
           }
           break;
         }
@@ -236,8 +240,33 @@ export class LoginPage extends BasePage {
    * Select "Use my password" option from sign-in options
    */
   private async selectPasswordOption(): Promise<boolean> {
-    this.log('🔍 Looking for "Use my password" option...');
+    this.log('🔍 Looking for authentication options...');
     
+    // First check for "Face, fingerprint, PIN or security key" option
+    const passkeyOptionSelectors = [
+      'div[data-value="WindowsHello"]',
+      'button[data-value="WindowsHello"]',
+      'div:has-text("Face, fingerprint, PIN or security key")',
+      'button:has-text("Face, fingerprint, PIN or security key")',
+      'div[role="button"]:has-text("Face, fingerprint")',
+      'div.tile:has-text("Face, fingerprint")'
+    ];
+    
+    for (const selector of passkeyOptionSelectors) {
+      const element = this.page.locator(selector);
+      if (await this.isElementVisible(element, 2000)) {
+        this.log('✅ Found "Face, fingerprint, PIN or security key" option');
+        await this.clickElement(element);
+        this.log('✅ Clicked passkey/PIN option');
+        await this.page.waitForTimeout(3000);
+        
+        // After clicking, Windows Security dialog should appear or PIN field
+        // Return false to indicate password path not taken (will use PIN flow instead)
+        return false;
+      }
+    }
+    
+    // If passkey option not found, look for "Use my password" option
     const passwordOptionSelectors = [
       'div[data-value="Password"]',
       'button[data-value="Password"]',
@@ -257,7 +286,7 @@ export class LoginPage extends BasePage {
       }
     }
     
-    this.log('⚠️ "Use my password" option not found');
+    this.log('⚠️ No authentication option found');
     return false;
   }
 

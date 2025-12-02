@@ -23,7 +23,25 @@ export class MFAPage extends BasePage {
   async handleMFAAuthentication(): Promise<void> {
     this.log('🔍 Detecting MFA screen...');
     
-    // First check for Sign-in options (PIN option)
+    // First check for Windows Security dialog (might appear after clicking Face/fingerprint/PIN option)
+    const pin = process.env.M365_PIN;
+    if (pin) {
+      await this.page.waitForTimeout(2000);
+      const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
+      
+      if (dialogPresent) {
+        this.log('✅ Windows Security dialog detected immediately');
+        const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
+        
+        if (pinEntered) {
+          this.log('✅ PIN entered in Windows Security dialog');
+          await this.page.waitForTimeout(5000);
+          return;
+        }
+      }
+    }
+    
+    // Check for Sign-in options (PIN option)
     const signInOptionsHandled = await this.handleSignInOptions();
     if (signInOptionsHandled) {
       this.log('✅ Sign-in options handled successfully');
