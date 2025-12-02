@@ -35,10 +35,86 @@ export class WindowsSecurityHelper {
         
         foreach ($window in $windows) {
           $windowName = $window.Current.Name
-          if ($windowName -like "*Windows Security*" -or $windowName -like "*Sign in*") {
+          if ($windowName -like "*Windows Security*" -or $windowName -like "*Sign in*" -or $windowName -like "*passkey*") {
             Write-Host "Found Windows Security window: $windowName"
             
-            # Find the PIN input field (password field)
+            # First, try to find and click "Sign-in options" link
+            $signInOptionsFound = $false
+            $allElements = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+            
+            foreach ($element in $allElements) {
+              $elementName = $element.Current.Name
+              $elementType = $element.Current.ControlType
+              
+              if ($elementName -like "*Sign-in options*" -or $elementName -like "*sign-in options*") {
+                Write-Host "Found Sign-in options link: $elementName"
+                
+                # Try to click it
+                try {
+                  $invokePattern = $element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+                  $invokePattern.Invoke()
+                  Write-Host "Clicked Sign-in options"
+                  $signInOptionsFound = $true
+                  Start-Sleep -Milliseconds 2000
+                  break
+                } catch {
+                  Write-Host "Could not invoke Sign-in options, trying SetFocus and Enter"
+                  try {
+                    $element.SetFocus()
+                    Start-Sleep -Milliseconds 300
+                    [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+                    Write-Host "Pressed Enter on Sign-in options"
+                    $signInOptionsFound = $true
+                    Start-Sleep -Milliseconds 2000
+                    break
+                  } catch {
+                    Write-Host "Failed to click Sign-in options"
+                  }
+                }
+              }
+            }
+            
+            # After clicking Sign-in options (or if not found), look for PIN option
+            if ($signInOptionsFound) {
+              Write-Host "Looking for PIN option..."
+              Start-Sleep -Milliseconds 1000
+              
+              # Refresh window elements
+              $allElements = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+              
+              foreach ($element in $allElements) {
+                $elementName = $element.Current.Name
+                
+                if ($elementName -like "*PIN*" -and $elementName -notlike "*Sign-in options*") {
+                  Write-Host "Found PIN option: $elementName"
+                  
+                  # Click PIN option
+                  try {
+                    $invokePattern = $element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+                    $invokePattern.Invoke()
+                    Write-Host "Clicked PIN option"
+                    Start-Sleep -Milliseconds 2000
+                    break
+                  } catch {
+                    try {
+                      $element.SetFocus()
+                      Start-Sleep -Milliseconds 300
+                      [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+                      Write-Host "Pressed Enter on PIN option"
+                      Start-Sleep -Milliseconds 2000
+                      break
+                    } catch {
+                      Write-Host "Failed to click PIN option"
+                    }
+                  }
+                }
+              }
+            }
+            
+            # Now find the PIN input field (password field)
+            Write-Host "Looking for PIN input field..."
+            Start-Sleep -Milliseconds 1000
+            
             $condition = New-Object System.Windows.Automation.PropertyCondition(
               [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
               [System.Windows.Automation.ControlType]::Edit
@@ -63,6 +139,8 @@ export class WindowsSecurityHelper {
               Write-Host "PIN entered successfully"
               $found = $true
               break
+            } else {
+              Write-Host "PIN input field not found yet, retrying..."
             }
           }
         }
@@ -74,7 +152,7 @@ export class WindowsSecurityHelper {
         Write-Host "SUCCESS"
         exit 0
       } else {
-        Write-Host "FAILED: Windows Security dialog not found after 15 seconds"
+        Write-Host "FAILED: Could not complete PIN entry after 15 seconds"
         exit 1
       }
     `;
@@ -82,7 +160,7 @@ export class WindowsSecurityHelper {
     try {
       const { stdout, stderr } = await execPromise(
         `powershell.exe -ExecutionPolicy Bypass -Command "${powershellScript.replace(/"/g, '\\"')}"`,
-        { timeout: 20000 }
+        { timeout: 25000 }
       );
       
       console.log('PowerShell output:', stdout);
