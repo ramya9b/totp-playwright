@@ -84,28 +84,35 @@ jobs:
         echo "ERROR: TOTP_SECRET is not set!"
         exit 1
       fi
+      if [ -z "$(M365_PIN)" ]; then
+        echo "WARNING: M365_PIN is not set - passkey authentication may not work"
+      fi
       echo "✅ All required variables are configured"
     displayName: 'Verify Variables'
     env:
       M365_USERNAME: $(M365_USERNAME)
       M365_PASSWORD: $(M365_PASSWORD)
       TOTP_SECRET: $(TOTP_SECRET)
+      M365_PIN: $(M365_PIN)
 
   - script: |
       echo "M365_USERNAME=$(M365_USERNAME)" > .env
       echo "M365_PASSWORD=$(M365_PASSWORD)" >> .env
       echo "TOTP_SECRET=$(TOTP_SECRET)" >> .env
+      echo "M365_PIN=$(M365_PIN)" >> .env
       echo "D365_URL=https://avs-isv-puat.sandbox.operations.dynamics.com" >> .env
       echo "=== Environment Configuration ==="
       echo "Username configured: $(M365_USERNAME)"
       echo "TOTP Secret length: ${#TOTP_SECRET}"
+      echo "PIN configured: $(if [ -n "$(M365_PIN)" ]; then echo "Yes"; else echo "No"; fi)"
       echo ".env file contents (masked):"
-      cat .env | sed 's/\(PASSWORD=\).*/\1***/' | sed 's/\(SECRET=\).*/\1***/'
+      cat .env | sed 's/\(PASSWORD=\).*/\1***/' | sed 's/\(SECRET=\).*/\1***/' | sed 's/\(PIN=\).*/\1***/'
     displayName: 'Configure Environment'
     env:
       M365_USERNAME: $(M365_USERNAME)
       M365_PASSWORD: $(M365_PASSWORD)
       TOTP_SECRET: $(TOTP_SECRET)
+      M365_PIN: $(M365_PIN)
 
   - script: |
       export DISPLAY=:99
