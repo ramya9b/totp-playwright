@@ -161,6 +161,10 @@ export class MFAPage extends BasePage {
   private async handlePINOption(): Promise<boolean> {
     this.log('🔍 Looking for PIN/passkey option...');
     
+    // Take screenshot for debugging
+    await this.page.screenshot({ path: 'screenshots/sign-in-options-menu.png', fullPage: true });
+    this.log('📸 Screenshot saved: sign-in-options-menu.png');
+    
     // First check for "Face, fingerprint, PIN or security key" option
     const passkeyOptionSelectors = [
       'div[data-value="WindowsHello"]',
@@ -168,13 +172,36 @@ export class MFAPage extends BasePage {
       'div:has-text("Face, fingerprint, PIN or security key")',
       'button:has-text("Face, fingerprint, PIN or security key")',
       'div[role="button"]:has-text("Face, fingerprint")',
-      'div.tile:has-text("Face, fingerprint")'
+      'div.tile:has-text("Face, fingerprint")',
+      'div:has-text("Face, fingerprint")',
+      'button:has-text("Face, fingerprint")',
+      '[aria-label*="Face, fingerprint"]',
+      '[title*="Face, fingerprint"]',
+      'div.table-cell:has-text("Face, fingerprint")',
+      'div[class*="tile"]:has-text("Face")',
+      'div[class*="row"]:has-text("Face, fingerprint")'
     ];
+    
+    this.log('🔍 Searching for Face/fingerprint/PIN option with multiple selectors...');
+    
+    // First, log all visible text on the page for debugging
+    const pageText = await this.page.textContent('body');
+    if (pageText?.includes('Face') || pageText?.includes('fingerprint') || pageText?.includes('PIN')) {
+      this.log('✅ Page contains Face/fingerprint/PIN related text');
+    } else {
+      this.log('⚠️ Page does NOT contain Face/fingerprint/PIN related text');
+    }
     
     for (const selector of passkeyOptionSelectors) {
       const element = this.page.locator(selector);
+      const count = await element.count();
+      this.log(`  Checking selector: ${selector} - Found: ${count}`);
+      
       if (await this.isElementVisible(element, 2000)) {
-        this.log('✅ Found "Face, fingerprint, PIN or security key" option');
+        const text = await element.textContent();
+        this.log(`✅ Found "Face, fingerprint, PIN or security key" option`);
+        this.log(`  Element text: "${text}"`);
+        
         await this.clickElement(element);
         this.log('✅ Clicked passkey/PIN option');
         await this.page.waitForTimeout(3000);
@@ -404,7 +431,17 @@ export class MFAPage extends BasePage {
         if ('element' in mfaResult) {
           await mfaResult.element.click();
           this.log('🔄 Clicked "Sign in another way"');
-          await this.waitWithBrowserTiming(4000);
+          await this.page.waitForTimeout(3000);
+          
+          // First try to handle PIN option (Face, fingerprint, PIN or security key)
+          const pinHandled = await this.handlePINOption();
+          if (pinHandled) {
+            this.log('✅ PIN authentication path completed');
+            return;
+          }
+          
+          // If PIN option not found, try verification code (TOTP) option
+          this.log('🔍 PIN option not found, trying TOTP path...');
           await this.handleVerificationCodeSelection();
         }
         break;
