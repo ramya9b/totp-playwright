@@ -204,7 +204,33 @@ export class MFAPage extends BasePage {
         
         await this.clickElement(element);
         this.log('✅ Clicked passkey/PIN option');
-        await this.page.waitForTimeout(3000);
+        
+        // Immediately check for Windows Security dialog after clicking
+        // The dialog appears very quickly, so check right away
+        const pin = process.env.M365_PIN;
+        if (pin) {
+          this.log('🔍 Checking for Windows Security dialog immediately after click...');
+          await this.page.waitForTimeout(2000); // Give Windows time to show dialog
+          
+          const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
+          
+          if (dialogPresent) {
+            this.log('✅ Windows Security dialog detected after clicking passkey option');
+            const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
+            
+            if (pinEntered) {
+              this.log('✅ PIN entered successfully in Windows Security dialog');
+              await this.page.waitForTimeout(5000);
+              return true;
+            } else {
+              this.log('⚠️ Failed to enter PIN automatically in Windows dialog');
+            }
+          } else {
+            this.log('ℹ️ Windows Security dialog not detected, checking for web-based options...');
+          }
+        }
+        
+        await this.page.waitForTimeout(1000);
         
         // After clicking, we may land on Windows Hello passkey screen
         // Need to click "Sign-in options" to access PIN entry
@@ -232,24 +258,6 @@ export class MFAPage extends BasePage {
               return true;
             }
             break;
-          }
-        }
-        
-        // If Sign-in options not found, check for Windows Security dialog
-        const pin = process.env.M365_PIN;
-        if (pin) {
-          this.log('🔍 Checking for Windows Security dialog after selecting PIN option...');
-          const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
-          
-          if (dialogPresent) {
-            this.log('✅ Windows Security dialog detected');
-            const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
-            
-            if (pinEntered) {
-              this.log('✅ PIN entered in Windows Security dialog');
-              await this.page.waitForTimeout(5000);
-              return true;
-            }
           }
         }
         
