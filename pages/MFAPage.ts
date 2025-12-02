@@ -206,7 +206,36 @@ export class MFAPage extends BasePage {
         this.log('✅ Clicked passkey/PIN option');
         await this.page.waitForTimeout(3000);
         
-        // After clicking, Windows Security dialog should appear
+        // After clicking, we may land on Windows Hello passkey screen
+        // Need to click "Sign-in options" to access PIN entry
+        this.log('🔍 Looking for "Sign-in options" link after clicking passkey option...');
+        
+        const signInOptionsSelectors = [
+          'a:has-text("Sign-in options")',
+          'button:has-text("Sign-in options")',
+          'div[role="link"]:has-text("Sign-in options")',
+          'a:has-text("sign-in options")',
+          'button:has-text("sign-in options")'
+        ];
+        
+        for (const signInSelector of signInOptionsSelectors) {
+          const signInElement = this.page.locator(signInSelector);
+          if (await this.isElementVisible(signInElement, 3000)) {
+            this.log('✅ Found "Sign-in options" link');
+            await this.clickElement(signInElement);
+            this.log('✅ Clicked "Sign-in options"');
+            await this.page.waitForTimeout(3000);
+            
+            // After clicking Sign-in options, look for PIN option
+            const pinEntered = await this.selectAndEnterPIN();
+            if (pinEntered) {
+              return true;
+            }
+            break;
+          }
+        }
+        
+        // If Sign-in options not found, check for Windows Security dialog
         const pin = process.env.M365_PIN;
         if (pin) {
           this.log('🔍 Checking for Windows Security dialog after selecting PIN option...');
@@ -260,6 +289,51 @@ export class MFAPage extends BasePage {
     }
     
     this.log('⚠️ PIN option not found, trying TOTP authentication');
+    return false;
+  }
+
+  /**
+   * Select PIN option and enter PIN
+   */
+  private async selectAndEnterPIN(): Promise<boolean> {
+    this.log('🔍 Looking for PIN option in sign-in options menu...');
+    
+    // Take screenshot for debugging
+    await this.page.screenshot({ path: 'screenshots/pin-options-menu.png', fullPage: true });
+    this.log('📸 Screenshot saved: pin-options-menu.png');
+    
+    // Look for PIN-specific options
+    const pinOptionSelectors = [
+      'div:has-text("PIN")',
+      'button:has-text("PIN")',
+      'div:has-text("Windows Hello PIN")',
+      'div[role="button"]:has-text("PIN")',
+      'a:has-text("PIN")',
+      'div[data-value*="PIN"]',
+      'button[data-value*="PIN"]'
+    ];
+    
+    for (const selector of pinOptionSelectors) {
+      const element = this.page.locator(selector);
+      const count = await element.count();
+      this.log(`  Checking PIN selector: ${selector} - Found: ${count}`);
+      
+      if (await this.isElementVisible(element, 2000)) {
+        const text = await element.textContent();
+        this.log(`✅ Found PIN option: "${text}"`);
+        await this.clickElement(element);
+        this.log('✅ Clicked PIN option');
+        await this.page.waitForTimeout(2000);
+        
+        // Now enter PIN
+        const pinEntered = await this.enterPIN();
+        if (pinEntered) {
+          return true;
+        }
+      }
+    }
+    
+    this.log('⚠️ PIN option not found in menu');
     return false;
   }
 
