@@ -242,6 +242,10 @@ export class LoginPage extends BasePage {
   private async selectPasswordOption(): Promise<boolean> {
     this.log('🔍 Looking for authentication options...');
     
+    // Take screenshot for debugging
+    await this.page.screenshot({ path: 'screenshots/auth-options-menu.png', fullPage: true });
+    this.log('📸 Screenshot saved: auth-options-menu.png');
+    
     // First check for "Face, fingerprint, PIN or security key" option
     const passkeyOptionSelectors = [
       'div[data-value="WindowsHello"]',
@@ -249,13 +253,29 @@ export class LoginPage extends BasePage {
       'div:has-text("Face, fingerprint, PIN or security key")',
       'button:has-text("Face, fingerprint, PIN or security key")',
       'div[role="button"]:has-text("Face, fingerprint")',
-      'div.tile:has-text("Face, fingerprint")'
+      'div.tile:has-text("Face, fingerprint")',
+      'div:has-text("Face, fingerprint")',
+      'button:has-text("Face, fingerprint")',
+      '[aria-label*="Face, fingerprint"]',
+      '[title*="Face, fingerprint"]',
+      'div.table-cell:has-text("Face, fingerprint")',
+      'div[class*="tile"]:has-text("Face")',
+      'div[class*="row"]:has-text("Face, fingerprint")'
     ];
     
+    this.log('🔍 Searching for Face/fingerprint/PIN option...');
     for (const selector of passkeyOptionSelectors) {
       const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 2000)) {
+      const count = await element.count();
+      this.log(`  Checking selector: ${selector} - Found: ${count}`);
+      
+      if (await this.isElementVisible(element, 3000)) {
         this.log('✅ Found "Face, fingerprint, PIN or security key" option');
+        
+        // Try to get text content for verification
+        const text = await element.textContent();
+        this.log(`  Element text: ${text}`);
+        
         await this.clickElement(element);
         this.log('✅ Clicked passkey/PIN option');
         await this.page.waitForTimeout(3000);
