@@ -28,6 +28,12 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'on',
     video: 'on',
+    
+    /* Launch browser in incognito mode to avoid Windows Hello/cached credentials */
+    contextOptions: {
+      isMobile: false,
+      hasTouch: false,
+    },
   },
 
   /* Run tests in files in parallel */
@@ -75,6 +81,10 @@ export default defineConfig({
         screenshot: 'on' as const,
         video: 'on' as const,
         trace: 'on' as const,
+        // Launch in incognito mode to avoid Windows Hello
+        launchOptions: {
+          args: ['--incognito', '--no-first-run', '--disable-blink-features=AutomationControlled'],
+        },
       },
     },
     
@@ -89,6 +99,10 @@ export default defineConfig({
         screenshot: 'on' as const,
         video: 'on' as const,
         trace: 'on' as const,
+        // Launch in incognito mode
+        launchOptions: {
+          args: ['--incognito', '--no-first-run', '--disable-blink-features=AutomationControlled'],
+        },
       },
       dependencies: ['🔐 Login Authentication'],
     },

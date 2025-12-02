@@ -69,14 +69,16 @@ export class AuthenticationManager {
       // Step 3: Enter email
       await this.loginPage.enterEmail(this.username);
       
-      // Step 4: Check for passkey dialog first (appears after email)
+      // Step 4: Handle Windows Hello bypass if needed
       await this.mfaPage.handleMFAAuthentication();
       
-      // Step 5: Try to enter password (if field exists and passkey didn't work)
+      // Step 5: Enter password
       const passwordEntered = await this.loginPage.enterPassword(this.password);
       
-      // Step 6: Handle MFA authentication again if password was entered
+      // Step 6: Always handle MFA after password (for Microsoft Authenticator prompt and TOTP)
       if (passwordEntered) {
+        await this.page.waitForTimeout(3000);
+        this.loginPage.log('🔐 Handling MFA after password entry (Microsoft Authenticator / TOTP)');
         await this.mfaPage.handleMFAAuthentication();
       }
       

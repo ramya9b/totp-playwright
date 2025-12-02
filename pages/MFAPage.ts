@@ -1,7 +1,6 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
 import * as OTPAuth from 'otpauth';
-import { WindowsSecurityHelper } from '../utils/WindowsSecurityHelper';
 
 /**
  * MFA Page Object Model
@@ -23,529 +22,200 @@ export class MFAPage extends BasePage {
   async handleMFAAuthentication(): Promise<void> {
     this.log('🔍 Detecting MFA screen...');
     
-    // First check for Windows Security dialog (might appear after clicking Face/fingerprint/PIN option)
-    const pin = process.env.M365_PIN;
-    if (pin) {
-      await this.page.waitForTimeout(2000);
-      const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
-      
-      if (dialogPresent) {
-        this.log('✅ Windows Security dialog detected immediately');
-        const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
-        
-        if (pinEntered) {
-          this.log('✅ PIN entered in Windows Security dialog');
-          await this.page.waitForTimeout(5000);
-          return;
-        }
-      }
-    }
-    
-    // Check for Sign-in options (PIN option)
-    const signInOptionsHandled = await this.handleSignInOptions();
-    if (signInOptionsHandled) {
-      this.log('✅ Sign-in options handled successfully');
+    // Check for "Use my password instead" option to bypass Windows Hello
+    const usePasswordHandled = await this.handleUsePasswordInstead();
+    if (usePasswordHandled) {
+      this.log('✅ "Use my password instead" handled - continuing with password flow');
       return;
     }
     
-    const mfaDetectionStrategies = [
-      () => this.detectDirectTOTPField(),
-      () => this.detectSignInAnotherWay(),
-      () => this.detectDirectCodeOption(),
-      () => this.detectMFATextIndicators()
+    // Check if we're already on the password page - if so, skip MFA detection
+    const passwordField = this.page.locator('input[type="password"][name="passwd"]');
+    if (await this.isElementVisible(passwordField, 2000)) {
+      this.log('✅ Password field detected - skipping MFA detection (already on password page)');
+      return;
+    }
+    
+    // Check for "I can't use my Microsoft Authenticator app right now" link
+    const cantUseAppSelectors = [
+      'a:has-text("I can\'t use my Microsoft Authenticator app right now")',
+      'a:has-text("can\'t use")',
+      'a:has-text("I can\'t use")',
+      'button:has-text("I can\'t use")',
+      'a#signInAnotherWay'
     ];
     
-    let mfaResult = null;
-    for (const strategy of mfaDetectionStrategies) {
-      mfaResult = await strategy();
-      if (mfaResult) {
-        break;
-      }
-    }
-    
-    if (mfaResult) {
-      this.log(`🔍 MFA detected with strategy: ${mfaResult.type}`);
-      await this.processMFAResult(mfaResult);
-    } else {
-      this.log('ℹ️ No MFA screen detected - checking if login completed');
-    }
-  }
-
-  /**
-   * Handle Sign-in options flow (Passkey/PIN instead of password/TOTP)
-   */
-  private async handleSignInOptions(): Promise<boolean> {
-    this.log('🔍 Checking for passkey prompt or Sign-in options...');
-    
-    // Wait a moment for page to load after email entry
-    await this.page.waitForTimeout(2000);
-    
-    // Check if we're on the passkey/fingerprint screen
-    const passkeyIndicators = [
-      'text="Scan your finger on the fingerprint reader"',
-      'text="Sign in with a passkey"',
-      'text="Windows Security"',
-      'div:has-text("passkey")',
-      'div:has-text("fingerprint")'
-    ];
-    
-    let onPasskeyScreen = false;
-    for (const indicator of passkeyIndicators) {
-      if (await this.isElementVisible(this.page.locator(indicator), 1000)) {
-        this.log('✅ Detected passkey/fingerprint screen');
-        onPasskeyScreen = true;
-        break;
-      }
-    }
-    
-    if (onPasskeyScreen) {
-      // Look for "Sign-in options" link on the passkey screen
-      const signInOptionsSelectors = [
-        'a:has-text("Sign-in options")',
-        'button:has-text("Sign-in options")',
-        'div[role="link"]:has-text("Sign-in options")'
-      ];
-      
-      for (const selector of signInOptionsSelectors) {
-        const element = this.page.locator(selector);
-        if (await this.isElementVisible(element, 2000)) {
-          this.log('✅ Found "Sign-in options" link on passkey screen');
-          await this.clickElement(element);
-          this.log('✅ Clicked "Sign-in options"');
-          await this.page.waitForTimeout(2000);
-          
-          // Now look for PIN option in the sign-in options menu
-          const pinHandled = await this.handlePINOption();
-          if (pinHandled) {
-            return true;
-          }
-        }
-      }
-      
-      // If Sign-in options not found, check for Windows Security dialog
-      const pin = process.env.M365_PIN;
-      if (pin) {
-        this.log('🔍 Checking for Windows Security passkey dialog...');
-        const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
-        
-        if (dialogPresent) {
-          this.log('✅ Windows Security passkey dialog detected');
-          const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
-          
-          if (pinEntered) {
-            this.log('✅ PIN entered in Windows Security dialog');
-            await this.page.waitForTimeout(5000);
-            return true;
-          } else {
-            this.log('⚠️ Failed to enter PIN automatically, waiting for manual entry...');
-            await this.page.waitForTimeout(15000);
-          }
-        }
-      }
-    }
-    
-    // Check if authentication succeeded
-    const currentUrl = this.page.url();
-    if (!currentUrl.includes('login.microsoft') && !currentUrl.includes('microsoftonline')) {
-      this.log('✅ Authentication completed');
-      return true;
-    }
-    
-    this.log('ℹ️ No passkey screen or Sign-in options found');
-    return false;
-  }
-
-  /**
-   * Handle PIN authentication option
-   */
-  private async handlePINOption(): Promise<boolean> {
-    this.log('🔍 Looking for PIN/passkey option...');
-    
-    // Take screenshot for debugging
-    await this.page.screenshot({ path: 'screenshots/sign-in-options-menu.png', fullPage: true });
-    this.log('📸 Screenshot saved: sign-in-options-menu.png');
-    
-    // First check for "Face, fingerprint, PIN or security key" option
-    const passkeyOptionSelectors = [
-      'div[data-value="WindowsHello"]',
-      'button[data-value="WindowsHello"]',
-      'div:has-text("Face, fingerprint, PIN or security key")',
-      'button:has-text("Face, fingerprint, PIN or security key")',
-      'div[role="button"]:has-text("Face, fingerprint")',
-      'div.tile:has-text("Face, fingerprint")',
-      'div:has-text("Face, fingerprint")',
-      'button:has-text("Face, fingerprint")',
-      '[aria-label*="Face, fingerprint"]',
-      '[title*="Face, fingerprint"]',
-      'div.table-cell:has-text("Face, fingerprint")',
-      'div[class*="tile"]:has-text("Face")',
-      'div[class*="row"]:has-text("Face, fingerprint")'
-    ];
-    
-    this.log('🔍 Searching for Face/fingerprint/PIN option with multiple selectors...');
-    
-    // First, log all visible text on the page for debugging
-    const pageText = await this.page.textContent('body');
-    if (pageText?.includes('Face') || pageText?.includes('fingerprint') || pageText?.includes('PIN')) {
-      this.log('✅ Page contains Face/fingerprint/PIN related text');
-    } else {
-      this.log('⚠️ Page does NOT contain Face/fingerprint/PIN related text');
-    }
-    
-    for (const selector of passkeyOptionSelectors) {
+    for (const selector of cantUseAppSelectors) {
       const element = this.page.locator(selector);
-      const count = await element.count();
-      this.log(`  Checking selector: ${selector} - Found: ${count}`);
-      
-      if (await this.isElementVisible(element, 2000)) {
-        const text = await element.textContent();
-        this.log(`✅ Found "Face, fingerprint, PIN or security key" option`);
-        this.log(`  Element text: "${text}"`);
-        
+      if (await this.isElementVisible(element, 3000)) {
+        this.log('✅ Found "I can\'t use my Microsoft Authenticator app right now" link');
         await this.clickElement(element);
-        this.log('✅ Clicked passkey/PIN option');
+        this.log('✅ Clicked to use alternative method');
+        await this.page.waitForTimeout(3000);
         
-        // Immediately check for Windows Security dialog after clicking
-        // The dialog appears very quickly, so check right away
-        const pin = process.env.M365_PIN;
-        if (pin) {
-          this.log('🔍 Checking for Windows Security dialog immediately after click...');
-          await this.page.waitForTimeout(2000); // Give Windows time to show dialog
-          
-          const dialogPresent = await WindowsSecurityHelper.isWindowsSecurityDialogPresent();
-          
-          if (dialogPresent) {
-            this.log('✅ Windows Security dialog detected after clicking passkey option');
-            const pinEntered = await WindowsSecurityHelper.enterPINInWindowsSecurityDialog(pin);
-            
-            if (pinEntered) {
-              this.log('✅ PIN entered successfully in Windows Security dialog');
-              await this.page.waitForTimeout(5000);
-              return true;
-            } else {
-              this.log('⚠️ Failed to enter PIN automatically in Windows dialog');
-            }
-          } else {
-            this.log('ℹ️ Windows Security dialog not detected, checking for web-based options...');
-          }
-        }
-        
-        await this.page.waitForTimeout(1000);
-        
-        // After clicking, we may land on Windows Hello passkey screen
-        // Need to click "Sign-in options" to access PIN entry
-        this.log('🔍 Looking for "Sign-in options" link after clicking passkey option...');
-        
-        const signInOptionsSelectors = [
-          'a:has-text("Sign-in options")',
-          'button:has-text("Sign-in options")',
-          'div[role="link"]:has-text("Sign-in options")',
-          'a:has-text("sign-in options")',
-          'button:has-text("sign-in options")'
+        // Look for "Use a verification code from my mobile app" option
+        const verificationCodeSelectors = [
+          'div[data-value="PhoneAppOTP"]',
+          'button[data-value="PhoneAppOTP"]',
+          'div:has-text("Use a verification code")',
+          'button:has-text("Use a verification code")',
+          'div:has-text("verification code from my mobile app")',
+          'div[role="button"]:has-text("verification code")'
         ];
         
-        for (const signInSelector of signInOptionsSelectors) {
-          const signInElement = this.page.locator(signInSelector);
-          if (await this.isElementVisible(signInElement, 3000)) {
-            this.log('✅ Found "Sign-in options" link');
-            await this.clickElement(signInElement);
-            this.log('✅ Clicked "Sign-in options"');
+        for (const codeSelector of verificationCodeSelectors) {
+          const codeElement = this.page.locator(codeSelector);
+          if (await this.isElementVisible(codeElement, 3000)) {
+            this.log('✅ Found verification code option');
+            await this.clickElement(codeElement);
+            this.log('✅ Clicked verification code option');
             await this.page.waitForTimeout(3000);
-            
-            // After clicking Sign-in options, look for PIN option
-            const pinEntered = await this.selectAndEnterPIN();
-            if (pinEntered) {
-              return true;
-            }
             break;
           }
         }
-        
-        // Also try entering PIN in web-based field if present
-        const pinEntered = await this.enterPIN();
-        if (pinEntered) {
-          this.log('✅ PIN authentication completed');
-          return true;
-        }
+        break;
       }
     }
     
-    // Also check for direct PIN options
-    const pinSelectors = [
-      'div:has-text("PIN")',
-      'button:has-text("PIN")',
-      'div:has-text("Windows Hello")',
-      'div[role="button"]:has-text("PIN")',
-      'a:has-text("PIN")'
-    ];
-    
-    for (const selector of pinSelectors) {
-      const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 2000)) {
-        this.log('✅ Found PIN option');
-        await this.clickElement(element);
-        this.log('✅ Clicked PIN option');
-        await this.page.waitForTimeout(2000);
-        
-        // Enter PIN after selecting PIN option
-        const pinEntered = await this.enterPIN();
-        if (pinEntered) {
-          this.log('✅ PIN authentication completed');
-          return true;
-        }
-      }
+    // Only look for TOTP field directly - no other MFA methods
+    const totpField = await this.findTOTPField();
+    if (totpField) {
+      this.log('🔐 TOTP field found - entering code');
+      await this.handleTOTPEntry(totpField);
+    } else {
+      this.log('ℹ️ No TOTP field found - login may be complete');
     }
-    
-    this.log('⚠️ PIN option not found, trying TOTP authentication');
-    return false;
   }
 
   /**
-   * Select PIN option and enter PIN
+   * Handle "Use my password instead" option to bypass Windows Hello
    */
-  private async selectAndEnterPIN(): Promise<boolean> {
-    this.log('🔍 Looking for PIN option in sign-in options menu...');
+  private async handleUsePasswordInstead(): Promise<boolean> {
+    this.log('🔍 Checking for "Use my password instead" option...');
     
-    // Take screenshot for debugging
-    await this.page.screenshot({ path: 'screenshots/pin-options-menu.png', fullPage: true });
-    this.log('📸 Screenshot saved: pin-options-menu.png');
+    // Wait longer for page to fully load after email entry
+    await this.page.waitForTimeout(5000);
     
-    // Look for PIN-specific options
-    const pinOptionSelectors = [
-      'div:has-text("PIN")',
-      'button:has-text("PIN")',
-      'div:has-text("Windows Hello PIN")',
-      'div[role="button"]:has-text("PIN")',
-      'a:has-text("PIN")',
-      'div[data-value*="PIN"]',
-      'button[data-value*="PIN"]'
-    ];
+    // Check current URL
+    const currentUrl = this.page.url();
+    this.log(`📍 Current URL: ${currentUrl}`);
     
-    for (const selector of pinOptionSelectors) {
-      const element = this.page.locator(selector);
-      const count = await element.count();
-      this.log(`  Checking PIN selector: ${selector} - Found: ${count}`);
-      
-      if (await this.isElementVisible(element, 2000)) {
-        const text = await element.textContent();
-        this.log(`✅ Found PIN option: "${text}"`);
-        await this.clickElement(element);
-        this.log('✅ Clicked PIN option');
-        await this.page.waitForTimeout(2000);
-        
-        // Now enter PIN
-        const pinEntered = await this.enterPIN();
-        if (pinEntered) {
-          return true;
-        }
-      }
-    }
+    // Take screenshot to see what's on screen
+    await this.page.screenshot({ path: 'screenshots/after-email-entry.png', fullPage: true });
+    this.log('📸 Screenshot saved: after-email-entry.png');
     
-    this.log('⚠️ PIN option not found in menu');
-    return false;
-  }
-
-  /**
-   * Enter PIN in the PIN field
-   */
-  private async enterPIN(): Promise<boolean> {
-    this.log('🔍 Looking for PIN input field...');
-    
-    const pin = process.env.M365_PIN;
-    if (!pin) {
-      this.log('⚠️ M365_PIN not found in environment variables');
+    // Check if password field already exists (already on password page)
+    const passwordField = this.page.locator('input[type="password"][name="passwd"]');
+    if (await this.isElementVisible(passwordField, 2000)) {
+      this.log('✅ Password field already visible - no need to bypass Windows Hello');
       return false;
     }
     
-    const pinInputSelectors = [
-      'input[type="password"][name="pin"]',
-      'input[type="password"][placeholder*="PIN"]',
-      'input[type="password"][placeholder*="pin"]',
-      'input[name="pin"]',
-      'input[id*="pin"]',
-      'input[type="password"]',
-      'input[aria-label*="PIN"]',
-      'input[aria-label*="pin"]'
-    ];
-    
-    for (const selector of pinInputSelectors) {
-      const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 3000)) {
-        this.log(`✅ Found PIN input field with selector: ${selector}`);
-        await element.clear();
-        await element.fill(pin);
-        this.log('✅ PIN entered');
+    // If on FIDO/Windows Hello screen, use direct element clicking
+    if (currentUrl.includes('/fido/')) {
+      this.log('🔍 Detected FIDO/Windows Hello screen - using direct element detection');
+      
+      // Wait for the page to be interactive
+      await this.page.waitForLoadState('domcontentloaded').catch(() => {});
+      await this.page.waitForTimeout(3000);
+      
+      // Use JavaScript to find and click the sign-in options link
+      try {
+        const clicked = await this.page.evaluate(() => {
+          // Find all links and buttons
+          const elements = Array.from(document.querySelectorAll('a, button, div[role="link"], div[role="button"]'));
+          
+          // Look for sign-in options or password-related text
+          for (const element of elements) {
+            const text = element.textContent || '';
+            const htmlElement = element as HTMLElement;
+            
+            if (text.toLowerCase().includes('sign-in') || 
+                text.toLowerCase().includes('options') || 
+                text.toLowerCase().includes('password') ||
+                text.toLowerCase().includes('another way')) {
+              console.log('Found element:', text);
+              htmlElement.click();
+              return true;
+            }
+          }
+          return false;
+        });
         
-        // Look for submit button
-        const submitSelectors = [
-          'input[type="submit"]',
-          'button[type="submit"]',
-          'button:has-text("Sign in")',
-          'button:has-text("Submit")',
-          'button:has-text("Continue")',
-          'input[value="Sign in"]'
-        ];
-        
-        for (const submitSelector of submitSelectors) {
-          const submitBtn = this.page.locator(submitSelector);
-          if (await this.isElementVisible(submitBtn, 2000)) {
-            await this.clickElement(submitBtn);
-            this.log('✅ Clicked submit button after PIN entry');
+        if (clicked) {
+          this.log('✅ Clicked sign-in options using JavaScript');
+          await this.page.waitForTimeout(3000);
+          
+          // Now click Password option
+          const passwordClicked = await this.page.evaluate(() => {
+            const elements = Array.from(document.querySelectorAll('div, button, a'));
+            for (const element of elements) {
+              const text = element.textContent || '';
+              const htmlElement = element as HTMLElement;
+              
+              if (text.trim().toLowerCase() === 'password') {
+                console.log('Found Password option');
+                htmlElement.click();
+                return true;
+              }
+            }
+            return false;
+          });
+          
+          if (passwordClicked) {
+            this.log('✅ Clicked Password option using JavaScript');
             await this.page.waitForTimeout(3000);
+            
+            if (await this.isElementVisible(passwordField, 5000)) {
+              this.log('✅ Password field now visible');
+              return true;
+            }
+          }
+        }
+      } catch (error) {
+        this.log(`⚠️ JavaScript clicking failed: ${error}`);
+      }
+      
+      // If JavaScript failed, try pressing Tab + Enter to navigate
+      try {
+        this.log('🔧 Trying keyboard navigation...');
+        await this.page.keyboard.press('Tab');
+        await this.page.waitForTimeout(500);
+        await this.page.keyboard.press('Tab');
+        await this.page.waitForTimeout(500);
+        await this.page.keyboard.press('Enter');
+        await this.page.waitForTimeout(3000);
+        
+        // Check if we got to password selection
+        const passwordClicked = await this.page.evaluate(() => {
+          const elements = Array.from(document.querySelectorAll('*'));
+          for (const element of elements) {
+            const text = element.textContent || '';
+            const htmlElement = element as HTMLElement;
+            if (text.trim().toLowerCase() === 'password') {
+              htmlElement.click();
+              return true;
+            }
+          }
+          return false;
+        });
+        
+        if (passwordClicked) {
+          this.log('✅ Navigated to password using keyboard');
+          await this.page.waitForTimeout(3000);
+          
+          if (await this.isElementVisible(passwordField, 5000)) {
+            this.log('✅ Password field now visible');
             return true;
           }
         }
-        
-        // If no submit button found, try pressing Enter
-        await element.press('Enter');
-        this.log('✅ Pressed Enter after PIN entry');
-        await this.page.waitForTimeout(3000);
-        return true;
+      } catch (error) {
+        this.log(`⚠️ Keyboard navigation failed: ${error}`);
       }
     }
     
-    this.log('⚠️ PIN input field not found');
+    this.log('ℹ️ No "Use my password instead" option found');
     return false;
-  }
-
-  /**
-   * Strategy 1: Direct TOTP field detection
-   */
-  private async detectDirectTOTPField(): Promise<any> {
-    const directTotpSelectors = [
-      'input#idTxtBx_SAOTCC_OTC',
-      'input[name="otc"]',
-      'input[placeholder*="code" i]',
-      'input[aria-label*="code" i]',
-      'input[maxlength="6"]'
-    ];
-    
-    for (const selector of directTotpSelectors) {
-      const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 2000)) {
-        this.log(`🔐 Direct TOTP field found: ${selector}`);
-        return { type: 'direct-totp', element };
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Strategy 2: "Sign in another way" detection
-   */
-  private async detectSignInAnotherWay(): Promise<any> {
-    const anotherWaySelectors = [
-      'a#signInAnotherWay',
-      'a:has-text("Sign in another way")',
-      'a[data-bind*="signInAnotherWay"]',
-      'button:has-text("Sign in another way")',
-      'a:has-text("Use another verification method")',
-      'a:has-text("Try another way")'
-    ];
-    
-    for (const selector of anotherWaySelectors) {
-      const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 2000)) {
-        this.log(`🔄 Found "Sign in another way": ${selector}`);
-        return { type: 'another-way', element };
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Strategy 3: Direct verification code option detection
-   */
-  private async detectDirectCodeOption(): Promise<any> {
-    const codeOptionSelectors = [
-      'div[data-value="PhoneAppOTP"]',
-      'button[data-value="PhoneAppOTP"]',
-      'div:has-text("Use a verification code")',
-      'button:has-text("Use a verification code")',
-      'div:has-text("authenticator app")'
-    ];
-    
-    for (const selector of codeOptionSelectors) {
-      const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 2000)) {
-        this.log(`✅ Found direct verification code option: ${selector}`);
-        return { type: 'direct-code-option', element };
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Strategy 4: Text-based MFA detection
-   */
-  private async detectMFATextIndicators(): Promise<any> {
-    const textIndicators = [
-      'More information required',
-      'verify your identity',
-      'Approve a request',
-      'authenticator',
-      'verification code',
-      'Two-step verification'
-    ];
-    
-    for (const text of textIndicators) {
-      const element = this.page.locator(`div:has-text("${text}"), span:has-text("${text}"), p:has-text("${text}")`);
-      if (await this.isElementVisible(element, 1000)) {
-        this.log(`🔍 Found MFA text indicator: "${text}"`);
-        return { type: 'text-indicator', text };
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Process MFA detection result
-   */
-  private async processMFAResult(mfaResult: any): Promise<void> {
-    switch (mfaResult.type) {
-      case 'direct-totp':
-        if ('element' in mfaResult) {
-          await this.handleTOTPEntry(mfaResult.element);
-        }
-        break;
-        
-      case 'another-way':
-        if ('element' in mfaResult) {
-          await mfaResult.element.click();
-          this.log('🔄 Clicked "Sign in another way"');
-          await this.page.waitForTimeout(3000);
-          
-          // First try to handle PIN option (Face, fingerprint, PIN or security key)
-          const pinHandled = await this.handlePINOption();
-          if (pinHandled) {
-            this.log('✅ PIN authentication path completed');
-            return;
-          }
-          
-          // If PIN option not found, try verification code (TOTP) option
-          this.log('🔍 PIN option not found, trying TOTP path...');
-          await this.handleVerificationCodeSelection();
-        }
-        break;
-        
-      case 'direct-code-option':
-        if ('element' in mfaResult) {
-          await mfaResult.element.click();
-          this.log('✅ Clicked verification code option');
-          await this.page.waitForTimeout(3000);
-          
-          const totpField = await this.findTOTPField();
-          if (totpField) {
-            await this.handleTOTPEntry(totpField);
-          }
-        }
-        break;
-        
-      case 'text-indicator':
-        this.log('📝 MFA text detected, searching for interactive elements...');
-        await this.handleVerificationCodeSelection();
-        break;
-    }
   }
 
   /**
@@ -574,54 +244,6 @@ export class MFAPage extends BasePage {
     
     this.log('⚠️ No TOTP field found');
     return null;
-  }
-
-  /**
-   * Handle verification code selection from menu
-   */
-  private async handleVerificationCodeSelection(): Promise<void> {
-    const codeOptions = [
-      'div[data-value="PhoneAppOTP"]',
-      'button[data-value="PhoneAppOTP"]',
-      'div:has-text("Use a verification code")',
-      'button:has-text("Use a verification code")',
-      'div:has-text("verification code")',
-      'div[role="button"]:has-text("verification")',
-      'a:has-text("verification code")',
-      'div:has-text("authenticator app")'
-    ];
-    
-    this.log('🔍 Looking for verification code option...');
-    let codeOptionSelected = false;
-    
-    for (const selector of codeOptions) {
-      try {
-        const element = this.page.locator(selector);
-        const timeout = this.getBrowserTimeout(3000);
-        
-        if (await this.isElementVisible(element, timeout)) {
-          this.log(`✅ Found verification code option: ${selector}`);
-          await this.clickElement(element);
-          this.log('✅ Clicked verification code option');
-          codeOptionSelected = true;
-          
-          await this.page.waitForTimeout(3000);
-          
-          const totpField = await this.findTOTPField();
-          if (totpField) {
-            await this.handleTOTPEntry(totpField);
-          }
-          break;
-        }
-      } catch (error) {
-        this.log(`❌ Selector ${selector} failed: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
-    
-    if (!codeOptionSelected) {
-      this.log('⚠️ Could not find verification code option');
-      await this.takeScreenshot('mfa-debug');
-    }
   }
 
   /**

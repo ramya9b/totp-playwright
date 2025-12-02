@@ -25,7 +25,12 @@ export class LoginPage extends BasePage {
    */
   async navigateToLogin(url: string): Promise<void> {
     this.log('🚀 Navigating to D365 login page...');
-    await this.navigateTo(url);
+    
+    // Add prompt=login to force fresh authentication and skip passkey
+    const loginUrl = url.includes('?') ? `${url}&prompt=login` : `${url}?prompt=login`;
+    this.log(`🔧 Using URL with prompt=login: ${loginUrl}`);
+    
+    await this.navigateTo(loginUrl);
   }
 
   /**
@@ -181,38 +186,6 @@ export class LoginPage extends BasePage {
     const passwordTimeout = this.getBrowserTimeout(10000);
     
     try {
-      // First check for "Sign in another way" link (appears when passkey is default)
-      await this.page.waitForTimeout(2000);
-      
-      const signInAnotherWaySelectors = [
-        'a:has-text("Sign in another way")',
-        'button:has-text("Sign in another way")',
-        'div[role="link"]:has-text("Sign in another way")',
-        'a:has-text("Sign-in options")'
-      ];
-      
-      for (const selector of signInAnotherWaySelectors) {
-        const element = this.page.locator(selector);
-        if (await this.isElementVisible(element, 2000)) {
-          this.log('✅ Found "Sign in another way" link');
-          await this.clickElement(element);
-          this.log('✅ Clicked "Sign in another way"');
-          await this.page.waitForTimeout(2000);
-          
-          // Now look for authentication options (password or passkey)
-          const passwordOptionHandled = await this.selectPasswordOption();
-          if (passwordOptionHandled) {
-            this.log('✅ Selected "Use my password" option, continuing to password entry');
-            await this.page.waitForTimeout(2000);
-          } else {
-            // Passkey/PIN option was selected instead
-            this.log('ℹ️ Passkey/PIN option selected, will be handled by MFA flow');
-            return false; // Signal to skip password entry and use PIN flow
-          }
-          break;
-        }
-      }
-      
       // Check if password field exists
       await this.waitForElement('input[name="passwd"], input[type="password"]', passwordTimeout);
       this.log('✅ Password field found');
@@ -231,7 +204,7 @@ export class LoginPage extends BasePage {
       
       return true;
     } catch (error) {
-      this.log('⚠️ Password field not found - may need alternative authentication (PIN)');
+      this.log('⚠️ Password field not found');
       return false;
     }
   }
@@ -239,77 +212,6 @@ export class LoginPage extends BasePage {
   /**
    * Select "Use my password" option from sign-in options
    */
-  private async selectPasswordOption(): Promise<boolean> {
-    this.log('🔍 Looking for authentication options...');
-    
-    // Take screenshot for debugging
-    await this.page.screenshot({ path: 'screenshots/auth-options-menu.png', fullPage: true });
-    this.log('📸 Screenshot saved: auth-options-menu.png');
-    
-    // First check for "Face, fingerprint, PIN or security key" option
-    const passkeyOptionSelectors = [
-      'div[data-value="WindowsHello"]',
-      'button[data-value="WindowsHello"]',
-      'div:has-text("Face, fingerprint, PIN or security key")',
-      'button:has-text("Face, fingerprint, PIN or security key")',
-      'div[role="button"]:has-text("Face, fingerprint")',
-      'div.tile:has-text("Face, fingerprint")',
-      'div:has-text("Face, fingerprint")',
-      'button:has-text("Face, fingerprint")',
-      '[aria-label*="Face, fingerprint"]',
-      '[title*="Face, fingerprint"]',
-      'div.table-cell:has-text("Face, fingerprint")',
-      'div[class*="tile"]:has-text("Face")',
-      'div[class*="row"]:has-text("Face, fingerprint")'
-    ];
-    
-    this.log('🔍 Searching for Face/fingerprint/PIN option...');
-    for (const selector of passkeyOptionSelectors) {
-      const element = this.page.locator(selector);
-      const count = await element.count();
-      this.log(`  Checking selector: ${selector} - Found: ${count}`);
-      
-      if (await this.isElementVisible(element, 3000)) {
-        this.log('✅ Found "Face, fingerprint, PIN or security key" option');
-        
-        // Try to get text content for verification
-        const text = await element.textContent();
-        this.log(`  Element text: ${text}`);
-        
-        await this.clickElement(element);
-        this.log('✅ Clicked passkey/PIN option');
-        await this.page.waitForTimeout(3000);
-        
-        // After clicking, Windows Security dialog should appear or PIN field
-        // Return false to indicate password path not taken (will use PIN flow instead)
-        return false;
-      }
-    }
-    
-    // If passkey option not found, look for "Use my password" option
-    const passwordOptionSelectors = [
-      'div[data-value="Password"]',
-      'button[data-value="Password"]',
-      'div:has-text("Use my password")',
-      'button:has-text("Use my password")',
-      'div[role="button"]:has-text("password")',
-      'div.tile:has-text("password")'
-    ];
-    
-    for (const selector of passwordOptionSelectors) {
-      const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 3000)) {
-        this.log('✅ Found "Use my password" option');
-        await this.clickElement(element);
-        this.log('✅ Clicked "Use my password" option');
-        return true;
-      }
-    }
-    
-    this.log('⚠️ No authentication option found');
-    return false;
-  }
-
   /**
    * Check if already logged in (bypass login if session exists)
    */
