@@ -58,17 +58,7 @@ jobs:
   - script: |
       npm ci
       npx playwright install --with-deps chromium
-      # Install Xvfb for headed mode on Linux
-      sudo apt-get update
-      sudo apt-get install -y xvfb
     displayName: 'Install Dependencies'
-
-  - script: |
-      # Start Xvfb (virtual display server)
-      Xvfb :99 -screen 0 1920x1080x24 &
-      sleep 3
-      echo "✅ Xvfb started on display :99"
-    displayName: 'Start Virtual Display'
 
   - script: |
       echo "=== Verifying Variable Group ==="
@@ -115,14 +105,11 @@ jobs:
       M365_PIN: $(M365_PIN)
 
   - script: |
-      export DISPLAY=:99
-      export CI=false
-      npx playwright test --headed --reporter=html,junit
-    displayName: 'Run Playwright Tests (Headed Mode for Debugging)'
+      npx playwright test --reporter=html,junit
+    displayName: 'Run Playwright Tests (Headless Mode)'
     continueOnError: true
     env:
-      DISPLAY: :99
-      CI: false
+      CI: true
 
   - task: PublishTestResults@2
     displayName: 'Publish Test Results'
