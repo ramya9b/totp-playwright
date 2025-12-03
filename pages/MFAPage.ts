@@ -22,6 +22,24 @@ export class MFAPage extends BasePage {
   async handleMFAAuthentication(): Promise<void> {
     this.log('🔍 Detecting MFA screen...');
     
+    // FIRST: Check if we're already past MFA (on D365 or "Stay signed in?")
+    const currentUrl = this.page.url();
+    this.log(`📍 Current URL: ${currentUrl}`);
+    
+    if (currentUrl.includes('dynamics.com') || 
+        currentUrl.includes('operations.dynamics') ||
+        currentUrl.includes('businesscentral.dynamics')) {
+      this.log('✅ Already on D365 - MFA not required or already completed');
+      return;
+    }
+    
+    // Check if "Stay signed in?" prompt is visible (means MFA was skipped)
+    const staySignedInButton = this.page.locator('input[type="submit"][value="Yes"]');
+    if (await this.isElementVisible(staySignedInButton, 2000)) {
+      this.log('✅ "Stay signed in?" prompt visible - MFA appears to have been skipped');
+      return;
+    }
+    
     // Check for "Use my password instead" option to bypass Windows Hello
     const usePasswordHandled = await this.handleUsePasswordInstead();
     if (usePasswordHandled) {
@@ -38,7 +56,7 @@ export class MFAPage extends BasePage {
     
     // CRITICAL: Wait longer in CI for Microsoft pages to fully load
     const isCI = process.env.CI === 'true';
-    const waitTime = isCI ? 8000 : 3000;
+    const waitTime = isCI ? 5000 : 2000; // Reduced from 8s to 5s since we already waited after password
     
     this.log(`⏱️ Waiting ${waitTime}ms for MFA screen to fully load (CI: ${isCI})...`);
     await this.page.waitForTimeout(waitTime);
@@ -67,7 +85,14 @@ export class MFAPage extends BasePage {
         this.log(`✅ Found "I can't use my Microsoft Authenticator app right now" link with selector: ${selector}`);
         await this.clickElement(element);
         this.log('✅ Clicked to use alternative method');
-        await this.page.waitForTimeout(waitTime);
+        
+        // Wait for page to load, but catch if page navigates/closes
+        try {
+          await this.page.waitForTimeout(waitTime);
+        } catch (error) {
+          this.log('ℹ️ Page navigated immediately after clicking alternative method');
+        }
+        
         foundAlternativeLink = true;
         
         // Look for "Use a verification code from my mobile app" option
@@ -85,9 +110,25 @@ export class MFAPage extends BasePage {
           const codeElement = this.page.locator(codeSelector);
           if (await this.isElementVisible(codeElement, timeout)) {
             this.log(`✅ Found verification code option with selector: ${codeSelector}`);
-            await this.clickElement(codeElement);
-            this.log('✅ Clicked verification code option');
-            await this.page.waitForTimeout(waitTime);
+            
+            // Click and handle immediate navigation
+            try {
+              await this.clickElement(codeElement);
+              this.log('✅ Clicked verification code option');
+              
+              // Wait for navigation or TOTP field, but catch if page closes
+              try {
+                await Promise.race([
+                  this.page.waitForTimeout(waitTime),
+                  this.page.waitForURL(url => url.toString().includes('dynamics.com') || url.toString().includes('operations'))
+                ]);
+              } catch (waitError) {
+                this.log('ℹ️ Page navigated or closed after clicking verification code');
+              }
+            } catch (clickError) {
+              this.log(`⚠️ Error clicking verification code: ${clickError}`);
+            }
+            
             break;
           }
         }
