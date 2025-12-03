@@ -136,7 +136,23 @@ export class LoginPage extends BasePage {
       }
     }
     
-    // Strategy 4: Log all buttons/clickable elements for debugging
+    // Strategy 4: Check if we're on the reprocess screen with just a submit button
+    // This screen appears in CI/headless mode and just needs a submit click
+    if (this.getUrl().includes('reprocess') || this.getUrl().includes('select_account')) {
+      this.log('🔄 Detected reprocess screen, looking for submit button...');
+      
+      // Look for the primary submit button
+      const submitButton = this.page.locator('input[type="submit"].button_primary, input[type="submit"].win-button').first();
+      if (await this.isElementVisible(submitButton, 2000)) {
+        this.log('✅ Found submit button on reprocess screen');
+        await this.clickElement(submitButton);
+        this.log('✅ Clicked reprocess submit button');
+        await this.page.waitForTimeout(5000);
+        return true;
+      }
+    }
+    
+    // Strategy 5: Log all buttons/clickable elements for debugging
     this.log('🔍 Scanning for all clickable elements...');
     const allButtons = await this.page.locator('button, input[type="submit"], input[type="button"], div[role="button"], a[role="button"]').all();
     this.log(`Found ${allButtons.length} clickable elements total`);
@@ -287,7 +303,34 @@ export class LoginPage extends BasePage {
           return;
         }
         
-        // If account selection didn't work, try clicking through any remaining prompts
+        // If account selection didn't work, try clicking the primary submit button
+        // The reprocess screen shows a submit button with class "button_primary"
+        const submitButton = this.page.locator('input[type="submit"].button_primary, input[type="submit"].win-button').first();
+        if (await this.isElementVisible(submitButton, 2000)) {
+          this.log('🔄 Found primary submit button on reprocess screen');
+          await this.clickElement(submitButton);
+          this.log('✅ Clicked primary submit button, waiting for redirect...');
+          
+          // Wait longer for the redirect to complete
+          await this.page.waitForTimeout(5000);
+          
+          // Try to wait for the actual URL change
+          try {
+            await this.page.waitForURL(url => {
+              const urlStr = url.toString();
+              return urlStr.includes('dynamics.com') || 
+                     urlStr.includes('operations.dynamics') || 
+                     urlStr.includes('sandbox.operations') ||
+                     urlStr.includes('businesscentral.dynamics.com');
+            }, { timeout: 60000 });
+            this.log('✅ Login successful after reprocess submit');
+            return;
+          } catch (redirectError) {
+            this.log('⚠️ Still waiting after reprocess submit, checking URL...');
+          }
+        }
+        
+        // If still not working, try other continue buttons
         const continueSelectors = [
           'input[type="submit"]',
           'button[type="submit"]',
@@ -300,9 +343,9 @@ export class LoginPage extends BasePage {
         for (const selector of continueSelectors) {
           const element = this.page.locator(selector);
           if (await this.isElementVisible(element, 2000)) {
-            this.log(`🔄 Clicking continue button: ${selector}`);
+            this.log(`🔄 Trying continue button: ${selector}`);
             await this.clickElement(element);
-            await this.page.waitForTimeout(3000);
+            await this.page.waitForTimeout(5000);
             
             // Check if we're now on D365
             const newUrl = this.getUrl();
