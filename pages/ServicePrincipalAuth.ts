@@ -96,8 +96,10 @@ export class ServicePrincipalAuth extends BasePage {
 
       const tokenEndpoint = `https://login.microsoftonline.com/${this.tenantId}/oauth2/v2.0/token`;
       
-      // D365 resource scope
-      const scope = 'https://dynamics.microsoft.com/.default';
+      // Use the specific D365 instance URL as the resource scope
+      // Extract base URL from D365 URL (e.g., https://avs-isv-puat.sandbox.operations.dynamics.com)
+      const d365BaseUrl = new URL(this.d365Url).origin;
+      const scope = `${d365BaseUrl}/.default`;
 
       // Prepare form data for token request
       const formData = new URLSearchParams({
