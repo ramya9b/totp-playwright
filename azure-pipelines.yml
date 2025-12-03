@@ -105,18 +105,19 @@ jobs:
       M365_PIN: $(M365_PIN)
 
   - script: |
-      npx playwright test --reporter=html,junit
+      npx playwright test --reporter=html --reporter=junit --reporter=line
     displayName: 'Run Playwright Tests (Headless Mode)'
     continueOnError: true
     env:
       CI: true
+      PLAYWRIGHT_HTML_REPORT: playwright-report
 
   - task: PublishTestResults@2
     displayName: 'Publish Test Results'
     condition: always()
     inputs:
       testResultsFormat: 'JUnit'
-      testResultsFiles: '**/results.xml'
+      testResultsFiles: 'test-results/results.xml'
       testRunTitle: 'Playwright TOTP Tests'
       mergeTestResults: true
       failTaskOnFailedTests: false

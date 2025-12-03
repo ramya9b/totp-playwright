@@ -45,9 +45,7 @@ export default defineConfig({
   /* Configure number of parallel workers */
   workers: process.env.CI ? 1 : 1, // Keep single worker for session management
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME ? [
-    ['json', { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME }],
-  ] : [
+  reporter: [
     ['html', { 
       outputFolder: 'playwright-report', 
       open: 'never',
