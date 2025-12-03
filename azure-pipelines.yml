@@ -118,6 +118,12 @@ jobs:
       TOTP_SECRET: $(TOTP_SECRET)
 
   - script: |
+      node verify-totp.js
+    displayName: 'Verify TOTP Generation'
+    env:
+      TOTP_SECRET: $(TOTP_SECRET)
+
+  - script: |
       npx playwright test --reporter=html --reporter=junit --reporter=line
     displayName: 'Run Playwright Tests (Headless Mode)'
     continueOnError: true
