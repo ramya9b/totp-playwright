@@ -38,7 +38,7 @@ export class ServicePrincipalAuth extends BasePage {
 
   /**
    * Authenticate using Service Principal (OAuth2 Client Credentials Flow)
-   * This method checks if already authenticated, then obtains an access token if needed
+   * This method skips login and navigates directly to D365 home page
    */
   async authenticate(): Promise<boolean> {
     try {
@@ -56,6 +56,7 @@ export class ServicePrincipalAuth extends BasePage {
       }
 
       // Step 1: Get OAuth2 token using client credentials
+      this.log('🔑 Obtaining OAuth2 access token...');
       const token = await this.getAccessToken();
       
       if (!token) {
@@ -65,14 +66,15 @@ export class ServicePrincipalAuth extends BasePage {
 
       this.log('✅ Access token obtained successfully');
 
-      // Step 2: Navigate to D365 with the token
-      await this.navigateToD365WithToken(token);
+      // Step 2: Navigate directly to D365 home page (skip login)
+      this.log('🏠 Navigating directly to D365 home page...');
+      await this.navigateDirectlyToHomePage(token);
 
       // Step 3: Verify successful authentication
       const isAuthenticated = await this.verifyAuthentication();
 
       if (isAuthenticated) {
-        this.log('✅ Service Principal authentication successful');
+        this.log('✅ Service Principal authentication successful - home page loaded');
         return true;
       } else {
         this.log('❌ Service Principal authentication verification failed');
@@ -139,37 +141,43 @@ export class ServicePrincipalAuth extends BasePage {
   }
 
   /**
-   * Navigate to D365 and inject authentication token
+   * Navigate directly to D365 home page, bypassing login screens
    */
-  private async navigateToD365WithToken(token: string): Promise<void> {
+  private async navigateDirectlyToHomePage(token: string): Promise<void> {
     try {
-      this.log('🌐 Navigating to D365 with Service Principal token...');
+      this.log('🏠 Navigating directly to D365 home page (skip login)...');
 
-      // Navigate to D365 URL
-      await this.page.goto(this.d365Url, {
-        waitUntil: 'domcontentloaded',
-        timeout: 60000,
-      });
-
-      this.log('📍 Initial navigation complete');
-
-      // Inject authorization header for subsequent requests
+      // Set up route interception to add auth token to all requests
       await this.page.route('**/*', async (route) => {
         const headers = {
           ...route.request().headers(),
           'Authorization': `Bearer ${token}`,
         };
-        
         await route.continue({ headers });
       });
 
-      this.log('✅ Authorization header injected');
+      this.log('🔐 Authorization headers configured for all requests');
 
-      // Wait for page to process authentication
-      await this.page.waitForLoadState('networkidle', { timeout: 30000 });
+      // Navigate directly to D365 home page URL
+      await this.page.goto(this.d365Url, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000,
+      });
+
+      this.log('📍 Direct navigation to home page complete');
+
+      // Wait for page to fully load
+      await this.page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
+        this.log('⚠️ Network idle timeout - continuing anyway');
+      });
+
+      // Additional wait for D365 to initialize
+      await this.page.waitForTimeout(3000);
+
+      this.log('✅ Home page navigation complete');
 
     } catch (error) {
-      this.log(`❌ Error navigating to D365: ${error}`);
+      this.log(`❌ Error navigating to home page: ${error}`);
       throw error;
     }
   }

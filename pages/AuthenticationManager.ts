@@ -121,11 +121,15 @@ export class AuthenticationManager {
       
       // Try Service Principal authentication first if in CI and credentials are available
       if (this.servicePrincipalAuth) {
-        console.log('🔑 Attempting Service Principal (App Registration) authentication...');
+        console.log('🔑 Attempting Service Principal authentication (skip login flow)...');
         const success = await this.servicePrincipalAuth.authenticate();
         
         if (success) {
-          console.log('✅ Service Principal authentication successful');
+          console.log('✅ Service Principal authentication successful - home page loaded directly');
+          console.log('⏩ Login flow skipped using Service Principal credentials');
+          
+          // Verify homepage is loaded
+          await this.homePage.verifyHomepageLoaded();
           
           // Save session if requested
           if (saveSession) {
