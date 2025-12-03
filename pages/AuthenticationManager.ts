@@ -41,29 +41,37 @@ export class AuthenticationManager {
     
     // Initialize environment variables
     this.d365Url = process.env.D365_URL!;
-    this.username = process.env.M365_USERNAME!;
-    this.password = process.env.M365_PASSWORD!;
-    this.totpSecret = process.env.TOTP_SECRET!;
+    this.username = process.env.M365_USERNAME || '';
+    this.password = process.env.M365_PASSWORD || '';
+    this.totpSecret = process.env.TOTP_SECRET || '';
     
     // Initialize Service Principal credentials if available (for CI)
     this.azureClientId = process.env.AZURE_CLIENT_ID;
     this.azureClientSecret = process.env.AZURE_CLIENT_SECRET;
     this.azureTenantId = process.env.AZURE_TENANT_ID;
     
-    // Validate required environment variables based on environment
-    if (this.isCI && this.azureClientId && this.azureClientSecret && this.azureTenantId) {
-      console.log('✅ Running in CI mode with Service Principal authentication');
+    // Check if Service Principal credentials are available (takes priority over CI flag)
+    const hasServicePrincipalCreds = !!(this.azureClientId && this.azureClientSecret && this.azureTenantId);
+    
+    console.log(`🔧 CI Environment: ${this.isCI}`);
+    console.log(`🔧 Service Principal Credentials Available: ${hasServicePrincipalCreds}`);
+    
+    // Use Service Principal if credentials are available (regardless of CI flag)
+    if (hasServicePrincipalCreds) {
+      console.log('✅ Service Principal credentials detected - will use App Registration authentication');
+      console.log(`📋 Tenant ID: ${this.azureTenantId}`);
+      console.log(`📋 Client ID: ${this.azureClientId?.substring(0, 8)}...`);
       this.servicePrincipalAuth = new ServicePrincipalAuth(
         page,
-        this.azureClientId,
-        this.azureClientSecret,
-        this.azureTenantId,
+        this.azureClientId!,
+        this.azureClientSecret!,
+        this.azureTenantId!,
         this.d365Url
       );
     } else {
-      console.log('✅ Running in local mode with TOTP authentication');
+      console.log('✅ Using TOTP authentication (Service Principal credentials not found)');
       if (!this.d365Url || !this.username || !this.password || !this.totpSecret) {
-        throw new Error('Missing required environment variables for TOTP authentication');
+        throw new Error('Missing required environment variables for TOTP authentication. Need: D365_URL, M365_USERNAME, M365_PASSWORD, TOTP_SECRET');
       }
     }
     
