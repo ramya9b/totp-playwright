@@ -26,15 +26,23 @@ test.describe('🔐 D365 Authentication Setup', () => {
   
     // Launch browser with stealth mode to prevent automation detection
     // Use headless mode in CI/CD, headed mode for local debugging
+    const isHeadless = process.env.CI === 'true' || process.env.HEADLESS === 'true';
+    console.log(`🔧 Browser mode: ${isHeadless ? 'HEADLESS' : 'HEADED'}`);
+    console.log(`🔧 CI environment: ${process.env.CI}`);
+    
     const browser = await chromium.launch({
-      headless: process.env.CI === 'true' || process.env.HEADLESS === 'true',
+      headless: isHeadless,
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=WebAuthenticationUI',
         '--disable-web-security',
         '--no-first-run',
         '--no-service-autorun',
-        '--password-store=basic'
+        '--password-store=basic',
+        '--disable-dev-shm-usage', // Overcome limited resource problems in CI
+        '--no-sandbox', // Required for running in Docker/CI
+        '--disable-setuid-sandbox',
+        '--disable-gpu'
       ]
     });
   
