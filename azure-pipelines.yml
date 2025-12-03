@@ -38,7 +38,7 @@ schedules:
   always: true
 
 variables:
-  - group: D365-Credentials  # Contains: D365_URL, M365_USERNAME, M365_PASSWORD, TOTP_SECRET (TOTP) OR AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET (Service Principal)
+  - group: D365-Credentials  # Contains: D365_URL, M365_USERNAME, M365_PASSWORD, TOTP_SECRET
   - name: nodeVersion
     value: '18.x'
 
@@ -64,39 +64,25 @@ jobs:
   - script: |
       echo "=== Verifying Variable Group ==="
       
-      # Check authentication method
-      if [ -n "$(AZURE_CLIENT_ID)" ] && [ -n "$(AZURE_CLIENT_SECRET)" ] && [ -n "$(AZURE_TENANT_ID)" ]; then
-        echo "✅ Service Principal credentials detected - using App Registration authentication"
-        AUTH_METHOD="Service Principal"
-        
-        if [ -z "$(AZURE_TENANT_ID)" ]; then
-          echo "ERROR: AZURE_TENANT_ID is not set!"
-          exit 1
-        fi
-        if [ -z "$(AZURE_CLIENT_ID)" ]; then
-          echo "ERROR: AZURE_CLIENT_ID is not set!"
-          exit 1
-        fi
-        if [ -z "$(AZURE_CLIENT_SECRET)" ]; then
-          echo "ERROR: AZURE_CLIENT_SECRET is not set!"
-          exit 1
-        fi
-      else
-        echo "⚠️ Service Principal credentials not found - using TOTP authentication"
-        AUTH_METHOD="TOTP"
-        
-        if [ -z "$(M365_USERNAME)" ]; then
-          echo "ERROR: M365_USERNAME is not set!"
-          exit 1
-        fi
-        if [ -z "$(M365_PASSWORD)" ]; then
-          echo "ERROR: M365_PASSWORD is not set!"
-          exit 1
-        fi
-        if [ -z "$(TOTP_SECRET)" ]; then
-          echo "ERROR: TOTP_SECRET is not set!"
-          exit 1
-        fi
+      # Using TOTP authentication (only supported method for D365 F&O UI)
+      echo "✅ Using TOTP authentication for D365 F&O UI automation"
+      AUTH_METHOD="TOTP"
+      
+      if [ -z "$(D365_URL)" ]; then
+        echo "ERROR: D365_URL is not set!"
+        exit 1
+      fi
+      if [ -z "$(M365_USERNAME)" ]; then
+        echo "ERROR: M365_USERNAME is not set!"
+        exit 1
+      fi
+      if [ -z "$(M365_PASSWORD)" ]; then
+        echo "ERROR: M365_PASSWORD is not set!"
+        exit 1
+      fi
+      if [ -z "$(TOTP_SECRET)" ]; then
+        echo "ERROR: TOTP_SECRET is not set!"
+        exit 1
       fi
       
       if [ -z "$(D365_URL)" ]; then
@@ -111,9 +97,10 @@ jobs:
       M365_USERNAME: $(M365_USERNAME)
       M365_PASSWORD: $(M365_PASSWORD)
       TOTP_SECRET: $(TOTP_SECRET)
-      AZURE_TENANT_ID: $(AZURE_TENANT_ID)
-      AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
-      AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
+      D365_URL: $(D365_URL)
+      M365_USERNAME: $(M365_USERNAME)
+      M365_PASSWORD: $(M365_PASSWORD)
+      TOTP_SECRET: $(TOTP_SECRET)
 
   - script: |
       echo "D365_URL=$(D365_URL)" > .env
@@ -121,25 +108,14 @@ jobs:
       echo "M365_PASSWORD=$(M365_PASSWORD)" >> .env
       echo "TOTP_SECRET=$(TOTP_SECRET)" >> .env
       
-      # Add Service Principal credentials if available
-      if [ -n "$(AZURE_CLIENT_ID)" ]; then
-        echo "AZURE_TENANT_ID=$(AZURE_TENANT_ID)" >> .env
-        echo "AZURE_CLIENT_ID=$(AZURE_CLIENT_ID)" >> .env
-        echo "AZURE_CLIENT_SECRET=$(AZURE_CLIENT_SECRET)" >> .env
-        echo "✅ Service Principal credentials added to .env"
-      else
-        echo "⚠️ No Service Principal credentials - using TOTP authentication"
-      fi
-      
       echo "=== Environment Configuration ==="
       echo ".env file contents (masked):"
-      cat .env | sed 's/\(PASSWORD=\).*/\1***/' | sed 's/\(SECRET=\).*/\1***/' | sed 's/\(CLIENT_SECRET=\).*/\1***/'
+      cat .env | sed 's/\(PASSWORD=\).*/\1***/' | sed 's/\(SECRET=\).*/\1***/'
     displayName: 'Configure Environment'
     env:
       M365_USERNAME: $(M365_USERNAME)
       M365_PASSWORD: $(M365_PASSWORD)
       TOTP_SECRET: $(TOTP_SECRET)
-      M365_PIN: $(M365_PIN)
 
   - script: |
       npx playwright test --reporter=html --reporter=junit --reporter=line
