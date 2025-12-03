@@ -56,23 +56,12 @@ export class AuthenticationManager {
     console.log(`🔧 CI Environment: ${this.isCI}`);
     console.log(`🔧 Service Principal Credentials Available: ${hasServicePrincipalCreds}`);
     
-    // Use Service Principal if credentials are available (regardless of CI flag)
-    if (hasServicePrincipalCreds) {
-      console.log('✅ Service Principal credentials detected - will use App Registration authentication');
-      console.log(`📋 Tenant ID: ${this.azureTenantId}`);
-      console.log(`📋 Client ID: ${this.azureClientId?.substring(0, 8)}...`);
-      this.servicePrincipalAuth = new ServicePrincipalAuth(
-        page,
-        this.azureClientId!,
-        this.azureClientSecret!,
-        this.azureTenantId!,
-        this.d365Url
-      );
-    } else {
-      console.log('✅ Using TOTP authentication (Service Principal credentials not found)');
-      if (!this.d365Url || !this.username || !this.password || !this.totpSecret) {
-        throw new Error('Missing required environment variables for TOTP authentication. Need: D365_URL, M365_USERNAME, M365_PASSWORD, TOTP_SECRET');
-      }
+    // NOTE: Service Principal authentication is disabled because D365 F&O UI doesn't accept
+    // Service Principal Bearer tokens for browser-based access. It only works for API calls.
+    // We always use TOTP authentication for UI automation.
+    console.log('✅ Using TOTP authentication for D365 F&O UI automation');
+    if (!this.d365Url || !this.username || !this.password || !this.totpSecret) {
+      throw new Error('Missing required environment variables for TOTP authentication. Need: D365_URL, M365_USERNAME, M365_PASSWORD, TOTP_SECRET');
     }
     
     // Initialize page objects (always needed for fallback)
@@ -128,29 +117,30 @@ export class AuthenticationManager {
       }
       
       // Try Service Principal authentication first if in CI and credentials are available
-      if (this.servicePrincipalAuth) {
-        console.log('🔑 Attempting Service Principal authentication (skip login flow)...');
-        const success = await this.servicePrincipalAuth.authenticate();
-        
-        if (success) {
-          console.log('✅ Service Principal authentication successful - home page loaded directly');
-          console.log('⏩ Login flow skipped using Service Principal credentials');
-          
-          // Verify homepage is loaded
-          await this.homePage.verifyHomepageLoaded();
-          
-          // Save session if requested
-          if (saveSession) {
-            await this.loginPage.saveSession();
-          }
-          
-          return;
-        } else {
-          console.log('⚠️ Service Principal authentication failed, falling back to TOTP...');
-        }
-      }
+      // NOTE: Disabled because Service Principal doesn't work for D365 F&O UI automation
+      // if (this.servicePrincipalAuth) {
+      //   console.log('🔑 Attempting Service Principal authentication (skip login flow)...');
+      //   const success = await this.servicePrincipalAuth.authenticate();
+      //   
+      //   if (success) {
+      //     console.log('✅ Service Principal authentication successful - home page loaded directly');
+      //     console.log('⏩ Login flow skipped using Service Principal credentials');
+      //     
+      //     // Verify homepage is loaded
+      //     await this.homePage.verifyHomepageLoaded();
+      //     
+      //     // Save session if requested
+      //     if (saveSession) {
+      //       await this.loginPage.saveSession();
+      //     }
+      //     
+      //     return;
+      //   } else {
+      //     console.log('⚠️ Service Principal authentication failed, falling back to TOTP...');
+      //   }
+      // }
       
-      // Fallback to TOTP authentication (original flow)
+      // Use TOTP authentication (only supported method for D365 F&O UI)
       await this.performTOTPLogin(saveSession);
       
     } catch (error) {
