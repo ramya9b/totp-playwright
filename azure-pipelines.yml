@@ -1,4 +1,5 @@
-# Azure DevOps Pipeline for Playwright TOTP Tests
+# Azure DevOps Pipeline for Playwright D365 Tests
+# Supports TOTP (local) and Service Principal (CI/CD) authentication
 
 trigger:
   branches:
@@ -37,13 +38,13 @@ schedules:
   always: true
 
 variables:
-  - group: D365-Credentials
+  - group: D365-Credentials  # Contains: D365_URL, M365_USERNAME, M365_PASSWORD, TOTP_SECRET (TOTP) OR AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET (Service Principal)
   - name: nodeVersion
     value: '18.x'
 
 jobs:
 - job: PlaywrightTests
-  displayName: 'Playwright TOTP Tests'
+  displayName: 'Playwright D365 Authentication Tests'
   pool:
     vmImage: 'ubuntu-latest'
   
@@ -62,41 +63,77 @@ jobs:
 
   - script: |
       echo "=== Verifying Variable Group ==="
-      if [ -z "$(M365_USERNAME)" ]; then
-        echo "ERROR: M365_USERNAME is not set!"
+      
+      # Check authentication method
+      if [ -n "$(AZURE_CLIENT_ID)" ] && [ -n "$(AZURE_CLIENT_SECRET)" ] && [ -n "$(AZURE_TENANT_ID)" ]; then
+        echo "✅ Service Principal credentials detected - using App Registration authentication"
+        AUTH_METHOD="Service Principal"
+        
+        if [ -z "$(AZURE_TENANT_ID)" ]; then
+          echo "ERROR: AZURE_TENANT_ID is not set!"
+          exit 1
+        fi
+        if [ -z "$(AZURE_CLIENT_ID)" ]; then
+          echo "ERROR: AZURE_CLIENT_ID is not set!"
+          exit 1
+        fi
+        if [ -z "$(AZURE_CLIENT_SECRET)" ]; then
+          echo "ERROR: AZURE_CLIENT_SECRET is not set!"
+          exit 1
+        fi
+      else
+        echo "⚠️ Service Principal credentials not found - using TOTP authentication"
+        AUTH_METHOD="TOTP"
+        
+        if [ -z "$(M365_USERNAME)" ]; then
+          echo "ERROR: M365_USERNAME is not set!"
+          exit 1
+        fi
+        if [ -z "$(M365_PASSWORD)" ]; then
+          echo "ERROR: M365_PASSWORD is not set!"
+          exit 1
+        fi
+        if [ -z "$(TOTP_SECRET)" ]; then
+          echo "ERROR: TOTP_SECRET is not set!"
+          exit 1
+        fi
+      fi
+      
+      if [ -z "$(D365_URL)" ]; then
+        echo "ERROR: D365_URL is not set!"
         exit 1
       fi
-      if [ -z "$(M365_PASSWORD)" ]; then
-        echo "ERROR: M365_PASSWORD is not set!"
-        exit 1
-      fi
-      if [ -z "$(TOTP_SECRET)" ]; then
-        echo "ERROR: TOTP_SECRET is not set!"
-        exit 1
-      fi
-      if [ -z "$(M365_PIN)" ]; then
-        echo "WARNING: M365_PIN is not set - passkey authentication may not work"
-      fi
-      echo "✅ All required variables are configured"
+      
+      echo "✅ All required variables for $AUTH_METHOD authentication are configured"
     displayName: 'Verify Variables'
     env:
+      D365_URL: $(D365_URL)
       M365_USERNAME: $(M365_USERNAME)
       M365_PASSWORD: $(M365_PASSWORD)
       TOTP_SECRET: $(TOTP_SECRET)
-      M365_PIN: $(M365_PIN)
+      AZURE_TENANT_ID: $(AZURE_TENANT_ID)
+      AZURE_CLIENT_ID: $(AZURE_CLIENT_ID)
+      AZURE_CLIENT_SECRET: $(AZURE_CLIENT_SECRET)
 
   - script: |
-      echo "M365_USERNAME=$(M365_USERNAME)" > .env
+      echo "D365_URL=$(D365_URL)" > .env
+      echo "M365_USERNAME=$(M365_USERNAME)" >> .env
       echo "M365_PASSWORD=$(M365_PASSWORD)" >> .env
       echo "TOTP_SECRET=$(TOTP_SECRET)" >> .env
-      echo "M365_PIN=$(M365_PIN)" >> .env
-      echo "D365_URL=https://avs-isv-puat.sandbox.operations.dynamics.com" >> .env
+      
+      # Add Service Principal credentials if available
+      if [ -n "$(AZURE_CLIENT_ID)" ]; then
+        echo "AZURE_TENANT_ID=$(AZURE_TENANT_ID)" >> .env
+        echo "AZURE_CLIENT_ID=$(AZURE_CLIENT_ID)" >> .env
+        echo "AZURE_CLIENT_SECRET=$(AZURE_CLIENT_SECRET)" >> .env
+        echo "✅ Service Principal credentials added to .env"
+      else
+        echo "⚠️ No Service Principal credentials - using TOTP authentication"
+      fi
+      
       echo "=== Environment Configuration ==="
-      echo "Username configured: $(M365_USERNAME)"
-      echo "TOTP Secret length: ${#TOTP_SECRET}"
-      echo "PIN configured: $(if [ -n "$(M365_PIN)" ]; then echo "Yes"; else echo "No"; fi)"
       echo ".env file contents (masked):"
-      cat .env | sed 's/\(PASSWORD=\).*/\1***/' | sed 's/\(SECRET=\).*/\1***/' | sed 's/\(PIN=\).*/\1***/'
+      cat .env | sed 's/\(PASSWORD=\).*/\1***/' | sed 's/\(SECRET=\).*/\1***/' | sed 's/\(CLIENT_SECRET=\).*/\1***/'
     displayName: 'Configure Environment'
     env:
       M365_USERNAME: $(M365_USERNAME)

@@ -2,6 +2,7 @@ import { Page, BrowserContext } from '@playwright/test';
 import { LoginPage } from './LoginPage';
 import { MFAPage } from './MFAPage';
 import { HomePage } from './HomePage';
+import { ServicePrincipalAuth } from './ServicePrincipalAuth';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -9,7 +10,8 @@ dotenv.config();
 
 /**
  * Authentication Manager using Page Object Model
- * Orchestrates the complete login flow with TOTP authentication
+ * Orchestrates the complete login flow with TOTP authentication (local)
+ * or Service Principal authentication (CI/CD)
  */
 export class AuthenticationManager {
   private page: Page;
@@ -17,15 +19,25 @@ export class AuthenticationManager {
   private loginPage: LoginPage;
   private mfaPage: MFAPage;
   private homePage: HomePage;
+  private servicePrincipalAuth: ServicePrincipalAuth | null = null;
   
   private d365Url: string;
   private username: string;
   private password: string;
   private totpSecret: string;
+  private isCI: boolean;
+  
+  // Service Principal credentials (optional - for CI/CD)
+  private azureClientId?: string;
+  private azureClientSecret?: string;
+  private azureTenantId?: string;
 
   constructor(page: Page) {
     this.page = page;
     this.context = page.context();
+    
+    // Check if running in CI environment
+    this.isCI = process.env.CI === 'true';
     
     // Initialize environment variables
     this.d365Url = process.env.D365_URL!;
@@ -33,22 +45,115 @@ export class AuthenticationManager {
     this.password = process.env.M365_PASSWORD!;
     this.totpSecret = process.env.TOTP_SECRET!;
     
-    // Validate required environment variables
-    if (!this.d365Url || !this.username || !this.password || !this.totpSecret) {
-      throw new Error('Missing required environment variables for authentication');
+    // Initialize Service Principal credentials if available (for CI)
+    this.azureClientId = process.env.AZURE_CLIENT_ID;
+    this.azureClientSecret = process.env.AZURE_CLIENT_SECRET;
+    this.azureTenantId = process.env.AZURE_TENANT_ID;
+    
+    // Validate required environment variables based on environment
+    if (this.isCI && this.azureClientId && this.azureClientSecret && this.azureTenantId) {
+      console.log('✅ Running in CI mode with Service Principal authentication');
+      this.servicePrincipalAuth = new ServicePrincipalAuth(
+        page,
+        this.azureClientId,
+        this.azureClientSecret,
+        this.azureTenantId,
+        this.d365Url
+      );
+    } else {
+      console.log('✅ Running in local mode with TOTP authentication');
+      if (!this.d365Url || !this.username || !this.password || !this.totpSecret) {
+        throw new Error('Missing required environment variables for TOTP authentication');
+      }
     }
     
-    // Initialize page objects
+    // Initialize page objects (always needed for fallback)
     this.loginPage = new LoginPage(page);
     this.mfaPage = new MFAPage(page, this.totpSecret, this.username);
     this.homePage = new HomePage(page);
   }
 
   /**
-   * Perform complete login flow with TOTP authentication
+   * Perform complete login flow
+   * - Checks if already logged in first
+   * - Uses Service Principal authentication in CI (if credentials available)
+   * - Falls back to TOTP authentication in local or if Service Principal fails
    */
   async performCompleteLogin(saveSession: boolean = true): Promise<void> {
-    console.log('🚀 Starting complete D365 TOTP authentication flow...');
+    console.log('🚀 Starting complete D365 authentication flow...');
+    
+    try {
+      // Step 0: Check if already logged in (navigate to D365 URL first)
+      console.log('🔍 Checking if already authenticated...');
+      await this.page.goto(this.d365Url, { 
+        waitUntil: 'domcontentloaded',
+        timeout: 30000 
+      }).catch(() => {
+        console.log('⚠️ Initial navigation check failed, will proceed with authentication');
+      });
+
+      // Check if we're already on D365 (not redirected to login)
+      const currentUrl = this.page.url();
+      const isAlreadyAuthenticated = currentUrl.includes('dynamics.com') && 
+                                      !currentUrl.includes('login.microsoftonline.com') &&
+                                      !currentUrl.includes('login.windows.net');
+      
+      if (isAlreadyAuthenticated) {
+        console.log('✅ Already authenticated - skipping login flow');
+        console.log(`📍 Current URL: ${currentUrl}`);
+        
+        // Verify session is actually valid by checking for D365 content
+        const isSessionValid = await this.homePage.verifySessionValid().catch(() => false);
+        
+        if (isSessionValid) {
+          console.log('✅ Session validated successfully');
+          
+          // Save session even when already logged in
+          if (saveSession) {
+            await this.loginPage.saveSession();
+          }
+          
+          return;
+        } else {
+          console.log('⚠️ Session appears invalid, proceeding with authentication...');
+        }
+      }
+      
+      // Try Service Principal authentication first if in CI and credentials are available
+      if (this.servicePrincipalAuth) {
+        console.log('🔑 Attempting Service Principal (App Registration) authentication...');
+        const success = await this.servicePrincipalAuth.authenticate();
+        
+        if (success) {
+          console.log('✅ Service Principal authentication successful');
+          
+          // Save session if requested
+          if (saveSession) {
+            await this.loginPage.saveSession();
+          }
+          
+          return;
+        } else {
+          console.log('⚠️ Service Principal authentication failed, falling back to TOTP...');
+        }
+      }
+      
+      // Fallback to TOTP authentication (original flow)
+      await this.performTOTPLogin(saveSession);
+      
+    } catch (error) {
+      console.log(`❌ Authentication flow failed: ${error}`);
+      await this.loginPage.saveDebugInfo('authentication-manager-error');
+      throw error;
+    }
+  }
+
+  /**
+   * Perform TOTP-based login (original flow)
+   * Used for local development or as fallback
+   */
+  private async performTOTPLogin(saveSession: boolean = true): Promise<void> {
+    console.log('🚀 Starting TOTP authentication flow...');
     
     try {
       // Step 1: Navigate to login page
