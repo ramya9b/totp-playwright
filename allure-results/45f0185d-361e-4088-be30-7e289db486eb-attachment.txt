@@ -1,0 +1,164 @@
+❌ Authentication flow failed: locator.count: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': 'a[contains(., "password")]' is not a valid selector.
+    at query (<anonymous>:5120:41)
+    at <anonymous>:5130:7
+    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)
+    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5117:17)
+    at SelectorEvaluatorImpl._querySimple (<anonymous>:4997:19)
+    at <anonymous>:4945:29
+    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)
+    at SelectorEvaluatorImpl.query (<anonymous>:4938:19)
+    at Object.query (<anonymous>:5152:44)
+    at <anonymous>:5110:21
+    at MFAPage.handleUsePasswordInstead (C:\Users\RamyaBIN\totp-playwright\pages\MFAPage.ts:98:35)
+    at MFAPage.handleMFAAuthentication (C:\Users\RamyaBIN\totp-playwright\pages\MFAPage.ts:26:32)
+    at AuthenticationManager.performCompleteLogin (C:\Users\RamyaBIN\totp-playwright\pages\AuthenticationManager.ts:73:7)
+    at C:\Users\RamyaBIN\totp-playwright\tests\login-setup.spec.ts:31:5 {
+  [Symbol(step)]: {
+    location: {
+      file: 'C:\\Users\\RamyaBIN\\totp-playwright\\pages\\MFAPage.ts',
+      line: 98,
+      column: 35,
+      function: 'MFAPage.handleUsePasswordInstead'
+    },
+    category: 'pw:api',
+    title: `Query count locator('a[contains(., "password")]').first()`,
+    apiName: 'locator.count',
+    params: { selector: 'a[contains(., "password")] >> nth=0' },
+    group: undefined,
+    stepId: 'pw:api@68',
+    boxedStack: undefined,
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [TestInfoImpl],
+      _stepId: 'pw:api@68',
+      _title: `Query count locator('a[contains(., "password")]').first()`,
+      _parentStep: undefined,
+      skip: [Function (anonymous)]
+    },
+    complete: [Function: complete],
+    endWallTime: 1764656260495,
+    error: {
+      message: `Error: locator.count: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': 'a[contains(., "password")]' is not a valid selector.\n` +
+        '    at query (<anonymous>:5120:41)\n' +
+        '    at <anonymous>:5130:7\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5117:17)\n' +
+        '    at SelectorEvaluatorImpl._querySimple (<anonymous>:4997:19)\n' +
+        '    at <anonymous>:4945:29\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl.query (<anonymous>:4938:19)\n' +
+        '    at Object.query (<anonymous>:5152:44)\n' +
+        '    at <anonymous>:5110:21',
+      stack: `Error: locator.count: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': 'a[contains(., "password")]' is not a valid selector.\n` +
+        '    at query (<anonymous>:5120:41)\n' +
+        '    at <anonymous>:5130:7\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5117:17)\n' +
+        '    at SelectorEvaluatorImpl._querySimple (<anonymous>:4997:19)\n' +
+        '    at <anonymous>:4945:29\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl.query (<anonymous>:4938:19)\n' +
+        '    at Object.query (<anonymous>:5152:44)\n' +
+        '    at <anonymous>:5110:21\n' +
+        '    at query (<anonymous>:5120:41)\n' +
+        '    at <anonymous>:5130:7\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5117:17)\n' +
+        '    at SelectorEvaluatorImpl._querySimple (<anonymous>:4997:19)\n' +
+        '    at <anonymous>:4945:29\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl.query (<anonymous>:4938:19)\n' +
+        '    at Object.query (<anonymous>:5152:44)\n' +
+        '    at <anonymous>:5110:21\n' +
+        '    at MFAPage.handleUsePasswordInstead (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\MFAPage.ts:98:35)\n' +
+        '    at MFAPage.handleMFAAuthentication (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\MFAPage.ts:26:32)\n' +
+        '    at AuthenticationManager.performCompleteLogin (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\AuthenticationManager.ts:73:7)\n' +
+        '    at C:\\Users\\RamyaBIN\\totp-playwright\\tests\\login-setup.spec.ts:31:5',
+      cause: undefined
+    }
+  }
+}
+❌ Login failed: locator.count: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': 'a[contains(., "password")]' is not a valid selector.
+    at query (<anonymous>:5120:41)
+    at <anonymous>:5130:7
+    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)
+    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5117:17)
+    at SelectorEvaluatorImpl._querySimple (<anonymous>:4997:19)
+    at <anonymous>:4945:29
+    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)
+    at SelectorEvaluatorImpl.query (<anonymous>:4938:19)
+    at Object.query (<anonymous>:5152:44)
+    at <anonymous>:5110:21
+    at MFAPage.handleUsePasswordInstead (C:\Users\RamyaBIN\totp-playwright\pages\MFAPage.ts:98:35)
+    at MFAPage.handleMFAAuthentication (C:\Users\RamyaBIN\totp-playwright\pages\MFAPage.ts:26:32)
+    at AuthenticationManager.performCompleteLogin (C:\Users\RamyaBIN\totp-playwright\pages\AuthenticationManager.ts:73:7)
+    at C:\Users\RamyaBIN\totp-playwright\tests\login-setup.spec.ts:31:5 {
+  [Symbol(step)]: {
+    location: {
+      file: 'C:\\Users\\RamyaBIN\\totp-playwright\\pages\\MFAPage.ts',
+      line: 98,
+      column: 35,
+      function: 'MFAPage.handleUsePasswordInstead'
+    },
+    category: 'pw:api',
+    title: `Query count locator('a[contains(., "password")]').first()`,
+    apiName: 'locator.count',
+    params: { selector: 'a[contains(., "password")] >> nth=0' },
+    group: undefined,
+    stepId: 'pw:api@68',
+    boxedStack: undefined,
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [TestInfoImpl],
+      _stepId: 'pw:api@68',
+      _title: `Query count locator('a[contains(., "password")]').first()`,
+      _parentStep: undefined,
+      skip: [Function (anonymous)]
+    },
+    complete: [Function: complete],
+    endWallTime: 1764656260495,
+    error: {
+      message: `Error: locator.count: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': 'a[contains(., "password")]' is not a valid selector.\n` +
+        '    at query (<anonymous>:5120:41)\n' +
+        '    at <anonymous>:5130:7\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5117:17)\n' +
+        '    at SelectorEvaluatorImpl._querySimple (<anonymous>:4997:19)\n' +
+        '    at <anonymous>:4945:29\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl.query (<anonymous>:4938:19)\n' +
+        '    at Object.query (<anonymous>:5152:44)\n' +
+        '    at <anonymous>:5110:21',
+      stack: `Error: locator.count: SyntaxError: Failed to execute 'querySelectorAll' on 'Document': 'a[contains(., "password")]' is not a valid selector.\n` +
+        '    at query (<anonymous>:5120:41)\n' +
+        '    at <anonymous>:5130:7\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5117:17)\n' +
+        '    at SelectorEvaluatorImpl._querySimple (<anonymous>:4997:19)\n' +
+        '    at <anonymous>:4945:29\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl.query (<anonymous>:4938:19)\n' +
+        '    at Object.query (<anonymous>:5152:44)\n' +
+        '    at <anonymous>:5110:21\n' +
+        '    at query (<anonymous>:5120:41)\n' +
+        '    at <anonymous>:5130:7\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl._queryCSS (<anonymous>:5117:17)\n' +
+        '    at SelectorEvaluatorImpl._querySimple (<anonymous>:4997:19)\n' +
+        '    at <anonymous>:4945:29\n' +
+        '    at SelectorEvaluatorImpl._cached (<anonymous>:4907:20)\n' +
+        '    at SelectorEvaluatorImpl.query (<anonymous>:4938:19)\n' +
+        '    at Object.query (<anonymous>:5152:44)\n' +
+        '    at <anonymous>:5110:21\n' +
+        '    at MFAPage.handleUsePasswordInstead (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\MFAPage.ts:98:35)\n' +
+        '    at MFAPage.handleMFAAuthentication (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\MFAPage.ts:26:32)\n' +
+        '    at AuthenticationManager.performCompleteLogin (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\AuthenticationManager.ts:73:7)\n' +
+        '    at C:\\Users\\RamyaBIN\\totp-playwright\\tests\\login-setup.spec.ts:31:5',
+      cause: undefined
+    }
+  }
+}

@@ -1,0 +1,44 @@
+🔧 Starting D365 TOTP login and session save...
+🚀 Starting complete D365 TOTP authentication flow...
+🌐 [chromium] 🚀 Navigating to D365 login page...
+🌐 [chromium] 📧 Entering email: ram***@alphavsolutions.com
+🌐 [chromium] 🔍 Checking for account selection screen...
+🌐 [chromium] ℹ️ Not on account selection screen
+🌐 [chromium] ✅ Email entered and submitted
+🌐 [chromium] 🔍 Detecting MFA screen...
+🌐 [chromium] 🔍 Checking for "Use my password instead" option...
+🌐 [chromium] ℹ️ No "Use my password instead" option found
+🌐 [chromium] ℹ️ No MFA screen detected - checking if login completed
+🌐 [chromium] 🔑 Looking for password field...
+🌐 [chromium] ⚠️ Password field not found - may need alternative authentication (PIN)
+🌐 [chromium] 🔍 Checking for "Stay signed in?" prompt...
+🌐 [chromium] ❓ Found "Stay signed in?" prompt
+🌐 [chromium] ✅ Clicked "Yes" to stay signed in
+🌐 [chromium] ⏳ Waiting for login redirect...
+🌐 [chromium] ⚠️ Login redirect timeout, checking current URL...
+🌐 [chromium] 🔄 Detected reprocess/account selection, attempting recovery...
+🌐 [chromium] 🔍 Checking for account selection screen...
+🌐 [chromium] ✅ Detected account selection/reprocess screen
+🌐 [chromium] 📸 Saved account selection page snapshot
+🌐 [chromium] 🔍 Scanning for all clickable elements...
+🌐 [chromium] Found 3 clickable elements total
+🌐 [chromium]   [0] INPUT.win-button button_primary high-contrast-overrides button ext-button primary ext-primary: ""
+🌐 [chromium]   [1] DIV.table: "
+
+                    
+                        
+                            
+
+
+
+                        
+                        
+                            Sign-in options
+                            
+                        
+                    
+                "
+🌐 [chromium]   [2] A.footer-content ext-footer-content footer-item ext-footer-item debug-item ext-debug-item has-background ext-has-background: "..."
+🌐 [chromium] ⚠️ Could not find clickable account element
+🌐 [chromium] 🔄 Clicking continue button: input[type="submit"]
+🌐 [chromium] 🔄 Clicking continue button: input[value="Next"]

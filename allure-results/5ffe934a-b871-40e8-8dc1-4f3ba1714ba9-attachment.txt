@@ -1,0 +1,49 @@
+🔧 Starting D365 TOTP login and session save (INCOGNITO MODE)...
+🚀 Starting complete D365 TOTP authentication flow...
+🌐 [chromium] 🚀 Navigating to D365 login page...
+🌐 [chromium] 🔧 Using URL with prompt=login: https://avs-isv-puat.sandbox.operations.dynamics.com?prompt=login
+🌐 [chromium] 📧 Entering email: ram***@alphavsolutions.com
+🌐 [chromium] 🔍 Checking for account selection screen...
+🌐 [chromium] ℹ️ Not on account selection screen
+🌐 [chromium] ✅ Email entered and submitted
+🌐 [chromium] 🔍 Detecting MFA screen...
+🌐 [chromium] 🔍 Checking for "Use my password instead" option...
+🌐 [chromium] 📍 Current URL: https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAi9Yw1tr7Gk6WW6BMxkV2bwAAAAACAAAAAAAQZgAAAAEAACAAAABwiXSgQsTo0wSZ98JQZkxn4CzPTR_9Bplk6gJOngd5gwAAAAAOgAAAAAIAACAAAAC1KOLQ79PuUJ54MTM8swtfEQ-MomlHrCzJve4a80jX2WAAAAABprUeW18nvjrA2SFiGMC7L-Bw79MTY8bcoW2_3ak-1rmnFKzrKoW8taVMLIuZAuVuqgJnoo8DTCALSiuABohyksLzbgg1OscAURXMMfHD5lmw6-lJp5E1tAVGrgSYnntAAAAAx1PrHzL1KtCxMjkoguVxa4LuIzHbFsu5oY0r3dcbh57I6qo1ueGIG_d0Y9CsBt0pi1zQSMT-tZ-k9heQR9HWKg%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639002648399003864.NmE5ZWJhN2UtZjljNi00Y2YzLTk5ZjUtNmY3YWU2MGU5MDI1ODVlNTViMWUtNjQzNi00NWQ0LWI0NTctODgxNWU1Y2ViMmEy&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0&sso_reload=true
+🌐 [chromium] 📸 Screenshot saved: after-email-entry.png
+🌐 [chromium] ✅ Password field already visible - no need to bypass Windows Hello
+🌐 [chromium] ✅ Password field detected - skipping MFA detection (already on password page)
+🌐 [chromium] 🔑 Looking for password field...
+🌐 [chromium] ✅ Found "Sign in another way" link
+🌐 [chromium] ✅ Clicked "Sign in another way"
+🌐 [chromium] 🔍 Looking for authentication options...
+🌐 [chromium] 📸 Screenshot saved: auth-options-menu.png
+🌐 [chromium] 🔍 Searching for Face/fingerprint/PIN option...
+🌐 [chromium]   Checking selector: div[data-value="WindowsHello"] - Found: 0
+🌐 [chromium]   Checking selector: button[data-value="WindowsHello"] - Found: 0
+🌐 [chromium]   Checking selector: div:has-text("Face, fingerprint, PIN or security key") - Found: 20
+🌐 [chromium]   Checking selector: button:has-text("Face, fingerprint, PIN or security key") - Found: 0
+🌐 [chromium]   Checking selector: div[role="button"]:has-text("Face, fingerprint") - Found: 1
+🌐 [chromium] ✅ Found "Face, fingerprint, PIN or security key" option
+🌐 [chromium]   Element text: 
+
+                    
+                        
+                            
+
+
+
+                        
+                    
+
+                    
+                        Face, fingerprint, PIN or security key
+
+                        
+                    
+                
+🌐 [chromium] ✅ Clicked passkey/PIN option
+🌐 [chromium] ℹ️ Passkey/PIN option selected, will be handled by MFA flow
+🌐 [chromium] 🔍 Checking for "Stay signed in?" prompt...
+🌐 [chromium] ❓ Found "Stay signed in?" prompt
+🌐 [chromium] ✅ Clicked "Yes" to stay signed in
+🌐 [chromium] ⏳ Waiting for login redirect...

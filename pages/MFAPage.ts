@@ -36,22 +36,39 @@ export class MFAPage extends BasePage {
       return;
     }
     
+    // CRITICAL: Wait longer in CI for Microsoft pages to fully load
+    const isCI = process.env.CI === 'true';
+    const waitTime = isCI ? 8000 : 3000;
+    
+    this.log(`⏱️ Waiting ${waitTime}ms for MFA screen to fully load (CI: ${isCI})...`);
+    await this.page.waitForTimeout(waitTime);
+    
+    // Take screenshot to see what's on screen
+    await this.page.screenshot({ path: 'screenshots/mfa-screen-before-detection.png', fullPage: true });
+    this.log('📸 Screenshot saved: mfa-screen-before-detection.png');
+    
     // Check for "I can't use my Microsoft Authenticator app right now" link
     const cantUseAppSelectors = [
       'a:has-text("I can\'t use my Microsoft Authenticator app right now")',
       'a:has-text("can\'t use")',
       'a:has-text("I can\'t use")',
       'button:has-text("I can\'t use")',
-      'a#signInAnotherWay'
+      'a:has-text("another way")',
+      'a:has-text("different")',
+      'a#signInAnotherWay',
+      'div[role="link"]:has-text("can\'t use")'
     ];
     
+    let foundAlternativeLink = false;
     for (const selector of cantUseAppSelectors) {
       const element = this.page.locator(selector);
-      if (await this.isElementVisible(element, 3000)) {
-        this.log('✅ Found "I can\'t use my Microsoft Authenticator app right now" link');
+      const timeout = isCI ? 8000 : 3000;
+      if (await this.isElementVisible(element, timeout)) {
+        this.log(`✅ Found "I can't use my Microsoft Authenticator app right now" link with selector: ${selector}`);
         await this.clickElement(element);
         this.log('✅ Clicked to use alternative method');
-        await this.page.waitForTimeout(3000);
+        await this.page.waitForTimeout(waitTime);
+        foundAlternativeLink = true;
         
         // Look for "Use a verification code from my mobile app" option
         const verificationCodeSelectors = [
@@ -60,21 +77,27 @@ export class MFAPage extends BasePage {
           'div:has-text("Use a verification code")',
           'button:has-text("Use a verification code")',
           'div:has-text("verification code from my mobile app")',
-          'div[role="button"]:has-text("verification code")'
+          'div[role="button"]:has-text("verification code")',
+          '[data-value*="OTP"]'
         ];
         
         for (const codeSelector of verificationCodeSelectors) {
           const codeElement = this.page.locator(codeSelector);
-          if (await this.isElementVisible(codeElement, 3000)) {
-            this.log('✅ Found verification code option');
+          if (await this.isElementVisible(codeElement, timeout)) {
+            this.log(`✅ Found verification code option with selector: ${codeSelector}`);
             await this.clickElement(codeElement);
             this.log('✅ Clicked verification code option');
-            await this.page.waitForTimeout(3000);
+            await this.page.waitForTimeout(waitTime);
             break;
           }
         }
         break;
       }
+    }
+    
+    if (!foundAlternativeLink) {
+      this.log('⚠️ No "I can\'t use my Microsoft Authenticator app right now" link found');
+      this.log('🔍 Checking if TOTP field is already visible without clicking...');
     }
     
     // Only look for TOTP field directly - no other MFA methods
@@ -227,9 +250,14 @@ export class MFAPage extends BasePage {
       'input[name="otc"]',
       'input[placeholder*="code" i]',
       'input[aria-label*="code" i]',
+      'input[aria-label*="verification" i]',
       'input[type="tel"]',
+      'input[type="text"][maxlength="6"]',
       'input[maxlength="6"]',
-      'input[inputmode="numeric"]'
+      'input[maxlength="8"]',
+      'input[inputmode="numeric"]',
+      'input[autocomplete="one-time-code"]',
+      'input.form-control[type="text"]'
     ];
     
     const waitTimeout = this.getBrowserTimeout(12000);

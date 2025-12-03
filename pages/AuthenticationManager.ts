@@ -85,6 +85,11 @@ export class AuthenticationManager {
       // Step 7: Handle stay signed in prompt
       await this.loginPage.handleStaySignedInPrompt();
       
+      // Step 7.5: Check for TOTP after "Stay signed in?" (Microsoft may show it here in CI)
+      await this.page.waitForTimeout(3000);
+      this.loginPage.log('🔐 Checking for TOTP after "Stay signed in?" prompt');
+      await this.mfaPage.handleMFAAuthentication();
+      
       // Step 8: Wait for successful login
       await this.loginPage.waitForLoginSuccess(this.d365Url);
       

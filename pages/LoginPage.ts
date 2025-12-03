@@ -307,6 +307,26 @@ export class LoginPage extends BasePage {
       if (currentUrl.includes('reprocess') || currentUrl.includes('select_account')) {
         this.log('🔄 Detected reprocess/account selection, attempting aggressive recovery...');
         
+        // FIRST: Check if this reprocess screen is actually asking for TOTP
+        const totpSelectors = [
+          'input#idTxtBx_SAOTCC_OTC',
+          'input[name="otc"]',
+          'input[placeholder*="code" i]',
+          'input[aria-label*="code" i]',
+          'input[type="tel"]',
+          'input[maxlength="6"]'
+        ];
+        
+        for (const selector of totpSelectors) {
+          const totpField = this.page.locator(selector);
+          if (await totpField.isVisible({ timeout: 2000 }).catch(() => false)) {
+            this.log('⚠️ TOTP field detected on reprocess screen! This needs MFA handling.');
+            this.log('🔄 Returning to allow MFA handler to process TOTP');
+            // Don't handle it here, let the flow continue to MFA handling
+            return;
+          }
+        }
+        
         // STRATEGY 1: Try clicking ANY visible submit button immediately
         const submitSelectors = [
           'input[type="submit"].button_primary',
