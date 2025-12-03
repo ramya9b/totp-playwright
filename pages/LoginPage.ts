@@ -334,32 +334,68 @@ export class LoginPage extends BasePage {
           'input[type="submit"]',
           'button[type="submit"]',
           'input[value="Next"]',
-          'input[value="Continue"]'
+          'input[value="Continue"]',
+          'input[value="Yes"]',
+          'input[value="Confirm"]',
+          'button:has-text("Continue")',
+          'button:has-text("Next")',
+          'button:has-text("Confirm")'
         ];
+        
+        let successfulClick = false;
         
         for (const selector of submitSelectors) {
           const button = this.page.locator(selector).first();
           if (await this.isElementVisible(button, 1000)) {
             this.log(`🔄 Attempting to click submit button: ${selector}`);
             
+            // Try multiple click strategies
+            let clicked = false;
+            
+            // Strategy A: JavaScript click
             try {
-              // Try JavaScript click first
               await button.evaluate((el: HTMLElement) => el.click());
               this.log('✅ Clicked via JavaScript');
-            } catch {
-              // Fallback to Playwright click
-              await button.click({ timeout: 5000 });
-              this.log('✅ Clicked via Playwright');
+              clicked = true;
+            } catch (jsError) {
+              this.log(`⚠️ JavaScript click failed: ${jsError}`);
+            }
+            
+            // Strategy B: Playwright click if JS failed
+            if (!clicked) {
+              try {
+                await button.click({ timeout: 5000, force: true });
+                this.log('✅ Clicked via Playwright (forced)');
+                clicked = true;
+              } catch (pwError) {
+                this.log(`⚠️ Playwright click failed: ${pwError}`);
+              }
+            }
+            
+            // Strategy C: Dispatch click event
+            if (!clicked) {
+              try {
+                await button.dispatchEvent('click');
+                this.log('✅ Clicked via dispatchEvent');
+                clicked = true;
+              } catch (dispatchError) {
+                this.log(`⚠️ dispatchEvent failed: ${dispatchError}`);
+              }
+            }
+            
+            if (!clicked) {
+              continue; // Try next selector
             }
             
             // Wait and check if redirect happened
-            await this.page.waitForTimeout(8000);
+            await this.page.waitForTimeout(10000); // Increased to 10s
             
             const newUrl = this.getUrl();
             if (newUrl.includes('dynamics.com') || 
                 newUrl.includes('operations.dynamics') ||
                 newUrl.includes('sandbox.operations')) {
               this.log('✅ Login successful after reprocess button click');
+              successfulClick = true;
               return;
             }
             
@@ -370,8 +406,9 @@ export class LoginPage extends BasePage {
                 return urlStr.includes('dynamics.com') || 
                        urlStr.includes('operations.dynamics') || 
                        urlStr.includes('sandbox.operations');
-              }, { timeout: 30000 });
+              }, { timeout: 40000 }); // Increased to 40s
               this.log('✅ Login successful after reprocess redirect');
+              successfulClick = true;
               return;
             } catch (waitError) {
               this.log(`⚠️ Button clicked but redirect did not complete: ${selector}`);
