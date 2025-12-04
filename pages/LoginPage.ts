@@ -26,9 +26,10 @@ export class LoginPage extends BasePage {
   async navigateToLogin(url: string): Promise<void> {
     this.log('🚀 Navigating to D365 login page...');
     
-    // Add prompt=login to force fresh authentication and skip passkey
-    const loginUrl = url.includes('?') ? `${url}&prompt=login` : `${url}?prompt=login`;
-    this.log(`🔧 Using URL with prompt=login: ${loginUrl}`);
+    // Add prompt=login to force fresh authentication and amr_values=mfa to require MFA
+    const separator = url.includes('?') ? '&' : '?';
+    const loginUrl = `${url}${separator}prompt=login&amr_values=mfa`;
+    this.log(`🔧 Using URL with prompt=login and MFA requirement: ${loginUrl}`);
     
     await this.navigateTo(loginUrl);
   }
