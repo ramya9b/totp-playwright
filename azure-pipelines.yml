@@ -176,3 +176,21 @@ jobs:
       pathToPublish: 'test-results'
       artifactName: 'test-results'
       publishLocation: 'Container'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Screenshots'
+    condition: and(always(), or(succeeded(), failed()))
+    continueOnError: true
+    inputs:
+      pathToPublish: 'screenshots'
+      artifactName: 'screenshots'
+      publishLocation: 'Container'
+
+  - script: |
+      echo "=== Listing all test artifacts ==="
+      find test-results -type f -name "*.png" -o -name "*.webm" -o -name "*.zip" | head -20
+      echo ""
+      echo "=== Listing screenshots ==="
+      ls -lh screenshots/ 2>/dev/null || echo "No screenshots directory"
+    displayName: 'List Test Artifacts'
+    condition: always()

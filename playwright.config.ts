@@ -25,9 +25,9 @@ export default defineConfig({
     // baseURL: 'http://127.0.0.1:3000',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'on',
-    video: 'on',
+    video: 'retain-on-failure',
     
     /* Launch browser in incognito mode to avoid Windows Hello/cached credentials */
     contextOptions: {
@@ -77,7 +77,8 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         headless: process.env.CI ? true : false,
         screenshot: 'on' as const,
-        video: 'on' as const,
+        video: 'retain-on-failure' as const,
+        trace: 'retain-on-failure' as const,
         trace: 'on' as const,
         // Launch in incognito mode to avoid Windows Hello
         launchOptions: {
