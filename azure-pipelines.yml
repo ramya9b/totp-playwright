@@ -83,19 +83,22 @@ stages:
             displayName: '📦 Install Dependencies'
           
           # Install Playwright browsers
-          - script: npx playwright install --with-deps
+          - script: npx playwright install --with-deps chromium
             displayName: '🎭 Install Playwright Browsers'
           
-          # Run Playwright tests with Microsoft Playwright Testing service
+          # Run Playwright tests (standard mode - MPT service causing auth issues)
           - script: |
-              echo "🚀 Running Playwright tests with Access Token authentication..."
-              echo "📊 Service URL: $PLAYWRIGHT_SERVICE_URL"
+              echo "🚀 Running Playwright tests in standard mode..."
               echo "🌐 D365 URL: $D365_URL"
-              echo "⚡ Parallel workers: 20"
-              echo "🔐 Authentication: Access Token + TOTP"
+              echo "⚡ Parallel workers: 10"
+              echo "🔐 Authentication: TOTP"
+              echo ""
+              echo "Note: Running without Microsoft Playwright Testing service due to"
+              echo "      access token authentication limitations. Tests will run on"
+              echo "      Azure agent with local browsers."
               echo ""
               
-              npx playwright test -c playwright.service.config.ts --workers=20
+              npx playwright test --workers=10
               
               if [ $? -ne 0 ]; then
                 echo "❌ Tests failed with exit code: $?"
@@ -104,12 +107,8 @@ stages:
               
               echo ""
               echo "✅ Tests completed successfully!"
-              echo "📊 View results at: https://playwright.microsoft.com/"
-            condition: eq(variables['USE_ACCESS_TOKEN'], 'true')
-            displayName: '🧪 Run Playwright Tests - Access Token Auth (20 Workers)'
+            displayName: '🧪 Run Playwright Tests (10 Workers - Standard Mode)'
             env:
-              PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
-              PLAYWRIGHT_SERVICE_ACCESS_TOKEN: $(PLAYWRIGHT_SERVICE_ACCESS_TOKEN)
               D365_URL: $(D365_URL)
               M365_USERNAME: $(M365_USERNAME)
               M365_PASSWORD: $(M365_PASSWORD)
