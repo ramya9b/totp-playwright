@@ -41,18 +41,26 @@ stages:
                 Copy-Item "$(d365AuthFile.secureFilePath)" -Destination "auth/D365AuthFile.json"
                 Write-Host "✅ Session file ready"
           
-          # Install Node.js
+          # Install Node.js with retry logic
           - task: NodeTool@0
             inputs:
-              versionSpec: '18.x'
+              versionSpec: '20.x'  # Use Node 20 LTS (more stable on Azure agents)
+              checkLatest: false    # Use cached version to avoid download issues
             displayName: '📦 Install Node.js'
+            retryCountOnTaskFailure: 3
           
           # Install dependencies
           - task: PowerShell@2
             displayName: '📦 Install Dependencies'
             inputs:
               targetType: 'inline'
-              script: 'npm ci'
+              script: |
+                Write-Host "Installing npm dependencies..." -ForegroundColor Cyan
+                npm ci
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "npm ci failed, trying npm install..." -ForegroundColor Yellow
+                  npm install
+                }
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Install Playwright browsers
