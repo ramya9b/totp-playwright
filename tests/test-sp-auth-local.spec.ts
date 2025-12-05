@@ -1,5 +1,5 @@
 import { test, chromium } from '@playwright/test';
-import { AuthenticationManager } from './pages';
+import { AuthenticationManager } from '../pages/AuthenticationManager';
 
 /**
  * Test Service Principal Authentication Locally

@@ -15,6 +15,9 @@ export default defineConfig({
   timeout: 2 * 60 * 1000, // 2 minutes timeout
   outputDir: 'test-results',
   
+  /* Global setup runs ONCE before all tests to authenticate */
+  globalSetup: require.resolve('./global-setup'),
+  
   expect: {
     timeout: 10000,
   },
@@ -40,13 +43,13 @@ export default defineConfig({
   },
 
   /* Run tests in files in parallel */
-  fullyParallel: false, // Set to false for session dependency
+  fullyParallel: true, // Enable parallel execution after global setup
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Configure number of parallel workers */
-  workers: process.env.CI ? 1 : 1, // Keep single worker for session management
+  workers: process.env.CI ? 10 : 4, // Parallel workers can use shared session
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html', { 
@@ -72,28 +75,9 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // Login setup project - no session storage
+    // All tests use saved session from global setup
     {
-      name: '🔐 Login Authentication',
-      testMatch: '**/login-setup.spec.ts',
-      use: { 
-        ...devices['Desktop Chrome'],
-        headless: process.env.CI ? true : false,
-        screenshot: 'on' as const,
-        video: 'retain-on-failure' as const,
-        trace: 'retain-on-failure' as const,
-        trace: 'on' as const,
-        // Launch in incognito mode to avoid Windows Hello
-        launchOptions: {
-          args: ['--incognito', '--no-first-run', '--disable-blink-features=AutomationControlled'],
-        },
-      },
-    },
-    
-    // Homepage tests - use saved session
-    {
-      name: '🏠 Homepage Verification',
-      testMatch: '**/homepage-verification.spec.ts',
+      name: 'chromium',
       use: { 
         ...devices['Desktop Chrome'],
         storageState: 'auth/D365AuthFile.json',
@@ -101,12 +85,7 @@ export default defineConfig({
         screenshot: 'on' as const,
         video: 'on' as const,
         trace: 'on' as const,
-        // Launch in incognito mode
-        launchOptions: {
-          args: ['--incognito', '--no-first-run', '--disable-blink-features=AutomationControlled'],
-        },
       },
-      dependencies: ['🔐 Login Authentication'],
     },
   ],
 });

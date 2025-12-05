@@ -30,11 +30,11 @@
     "@playwright/test": "^1.56.1",
     "@types/node": "^24.10.1",
     "allure-playwright": "^3.4.2",
+    "dotenv": "^17.2.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "dotenv": "^17.2.3",
     "otpauth": "^9.4.1"
   },
   "directories": {

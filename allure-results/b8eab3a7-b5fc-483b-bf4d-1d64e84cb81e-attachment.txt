@@ -1,0 +1,114 @@
+❌ Authentication flow failed: page.goto: Navigation to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa" is interrupted by another navigation to "https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAbcliel-6i06EgOI0ymHergAAAAACAAAAAAAQZgAAAAEAACAAAAAd6aP-KvJ2zUn6csAvlyy1sINMECvhYF7KyHY7c-V34gAAAAAOgAAAAAIAACAAAADEkfqKxxfp0yprOfpJ9EwhjjC5Qctksq27TWPUj4ttilAAAACamsxZVJmvbw-Bzs_pvlS74UPr4yGyRLRkYoiH0nC1RfU6tQhsxsz-UQNFHTSRP7A8dNDO9eGBIE-kFLtij5_ZxJuGyPLHTPawI8CsUBXUqEAAAADiAhg-Vn_qxIx0XU2tTGYqh5c2LcOh37VfmiLFiJPl_N4-lmBStSpW6tSroUtlam_538_YfPQ4XJt8WOeYeFlA%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639005051282721746.ZTgyMTIxNjktMTBkYS00NzEyLTg1ODgtOGIwNTJlZTViODA2MDJhY2UwMTAtY2QyZi00YjQ5LThhZDYtMzBhMWM0ZTY5ODgz&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0&sso_reload=true"
+Call log:
+  - navigating to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa", waiting until "load"
+
+    at LoginPage.navigateTo (C:\Users\RamyaBIN\totp-playwright\pages\BasePage.ts:20:21)
+    at LoginPage.navigateToLogin (C:\Users\RamyaBIN\totp-playwright\pages\LoginPage.ts:34:16)
+    at AuthenticationManager.performTOTPLogin (C:\Users\RamyaBIN\totp-playwright\pages\AuthenticationManager.ts:162:28)
+    at AuthenticationManager.performCompleteLogin (C:\Users\RamyaBIN\totp-playwright\pages\AuthenticationManager.ts:144:18)
+    at C:\Users\RamyaBIN\totp-playwright\tests\login-setup.spec.ts:89:7 {
+  name: 'Error',
+  [Symbol(step)]: {
+    location: {
+      file: 'C:\\Users\\RamyaBIN\\totp-playwright\\pages\\BasePage.ts',
+      line: 20,
+      column: 21,
+      function: 'LoginPage.navigateTo'
+    },
+    category: 'pw:api',
+    title: 'Navigate to "/?prompt=login&amr_values=mfa"',
+    apiName: 'page.goto',
+    params: {
+      url: 'https://avs-isv-puat.sandbox.operations.dynamics.com?prompt=login&amr_values=mfa',
+      waitUntil: 'load',
+      timeout: 0
+    },
+    group: undefined,
+    stepId: 'pw:api@43',
+    boxedStack: undefined,
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [TestInfoImpl],
+      _stepId: 'pw:api@43',
+      _title: 'Navigate to "/?prompt=login&amr_values=mfa"',
+      _parentStep: undefined,
+      skip: [Function (anonymous)]
+    },
+    complete: [Function: complete],
+    endWallTime: 1764908338317,
+    error: {
+      message: 'Error: page.goto: Navigation to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa" is interrupted by another navigation to "https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAbcliel-6i06EgOI0ymHergAAAAACAAAAAAAQZgAAAAEAACAAAAAd6aP-KvJ2zUn6csAvlyy1sINMECvhYF7KyHY7c-V34gAAAAAOgAAAAAIAACAAAADEkfqKxxfp0yprOfpJ9EwhjjC5Qctksq27TWPUj4ttilAAAACamsxZVJmvbw-Bzs_pvlS74UPr4yGyRLRkYoiH0nC1RfU6tQhsxsz-UQNFHTSRP7A8dNDO9eGBIE-kFLtij5_ZxJuGyPLHTPawI8CsUBXUqEAAAADiAhg-Vn_qxIx0XU2tTGYqh5c2LcOh37VfmiLFiJPl_N4-lmBStSpW6tSroUtlam_538_YfPQ4XJt8WOeYeFlA%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639005051282721746.ZTgyMTIxNjktMTBkYS00NzEyLTg1ODgtOGIwNTJlZTViODA2MDJhY2UwMTAtY2QyZi00YjQ5LThhZDYtMzBhMWM0ZTY5ODgz&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0&sso_reload=true"\n' +
+        'Call log:\n' +
+        '\x1B[2m  - navigating to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa", waiting until "load"\x1B[22m\n',
+      stack: 'Error: page.goto: Navigation to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa" is interrupted by another navigation to "https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAbcliel-6i06EgOI0ymHergAAAAACAAAAAAAQZgAAAAEAACAAAAAd6aP-KvJ2zUn6csAvlyy1sINMECvhYF7KyHY7c-V34gAAAAAOgAAAAAIAACAAAADEkfqKxxfp0yprOfpJ9EwhjjC5Qctksq27TWPUj4ttilAAAACamsxZVJmvbw-Bzs_pvlS74UPr4yGyRLRkYoiH0nC1RfU6tQhsxsz-UQNFHTSRP7A8dNDO9eGBIE-kFLtij5_ZxJuGyPLHTPawI8CsUBXUqEAAAADiAhg-Vn_qxIx0XU2tTGYqh5c2LcOh37VfmiLFiJPl_N4-lmBStSpW6tSroUtlam_538_YfPQ4XJt8WOeYeFlA%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639005051282721746.ZTgyMTIxNjktMTBkYS00NzEyLTg1ODgtOGIwNTJlZTViODA2MDJhY2UwMTAtY2QyZi00YjQ5LThhZDYtMzBhMWM0ZTY5ODgz&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0&sso_reload=true"\n' +
+        'Call log:\n' +
+        '\x1B[2m  - navigating to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa", waiting until "load"\x1B[22m\n' +
+        '\n' +
+        '    at LoginPage.navigateTo (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\BasePage.ts:20:21)\n' +
+        '    at LoginPage.navigateToLogin (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\LoginPage.ts:34:16)\n' +
+        '    at AuthenticationManager.performTOTPLogin (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\AuthenticationManager.ts:162:28)\n' +
+        '    at AuthenticationManager.performCompleteLogin (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\AuthenticationManager.ts:144:18)\n' +
+        '    at C:\\Users\\RamyaBIN\\totp-playwright\\tests\\login-setup.spec.ts:89:7',
+      cause: undefined
+    }
+  }
+}
+❌ Login failed: page.goto: Navigation to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa" is interrupted by another navigation to "https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAbcliel-6i06EgOI0ymHergAAAAACAAAAAAAQZgAAAAEAACAAAAAd6aP-KvJ2zUn6csAvlyy1sINMECvhYF7KyHY7c-V34gAAAAAOgAAAAAIAACAAAADEkfqKxxfp0yprOfpJ9EwhjjC5Qctksq27TWPUj4ttilAAAACamsxZVJmvbw-Bzs_pvlS74UPr4yGyRLRkYoiH0nC1RfU6tQhsxsz-UQNFHTSRP7A8dNDO9eGBIE-kFLtij5_ZxJuGyPLHTPawI8CsUBXUqEAAAADiAhg-Vn_qxIx0XU2tTGYqh5c2LcOh37VfmiLFiJPl_N4-lmBStSpW6tSroUtlam_538_YfPQ4XJt8WOeYeFlA%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639005051282721746.ZTgyMTIxNjktMTBkYS00NzEyLTg1ODgtOGIwNTJlZTViODA2MDJhY2UwMTAtY2QyZi00YjQ5LThhZDYtMzBhMWM0ZTY5ODgz&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0&sso_reload=true"
+Call log:
+  - navigating to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa", waiting until "load"
+
+    at LoginPage.navigateTo (C:\Users\RamyaBIN\totp-playwright\pages\BasePage.ts:20:21)
+    at LoginPage.navigateToLogin (C:\Users\RamyaBIN\totp-playwright\pages\LoginPage.ts:34:16)
+    at AuthenticationManager.performTOTPLogin (C:\Users\RamyaBIN\totp-playwright\pages\AuthenticationManager.ts:162:28)
+    at AuthenticationManager.performCompleteLogin (C:\Users\RamyaBIN\totp-playwright\pages\AuthenticationManager.ts:144:18)
+    at C:\Users\RamyaBIN\totp-playwright\tests\login-setup.spec.ts:89:7 {
+  name: 'Error',
+  [Symbol(step)]: {
+    location: {
+      file: 'C:\\Users\\RamyaBIN\\totp-playwright\\pages\\BasePage.ts',
+      line: 20,
+      column: 21,
+      function: 'LoginPage.navigateTo'
+    },
+    category: 'pw:api',
+    title: 'Navigate to "/?prompt=login&amr_values=mfa"',
+    apiName: 'page.goto',
+    params: {
+      url: 'https://avs-isv-puat.sandbox.operations.dynamics.com?prompt=login&amr_values=mfa',
+      waitUntil: 'load',
+      timeout: 0
+    },
+    group: undefined,
+    stepId: 'pw:api@43',
+    boxedStack: undefined,
+    steps: [],
+    attachmentIndices: [],
+    info: TestStepInfoImpl {
+      annotations: [],
+      _testInfo: [TestInfoImpl],
+      _stepId: 'pw:api@43',
+      _title: 'Navigate to "/?prompt=login&amr_values=mfa"',
+      _parentStep: undefined,
+      skip: [Function (anonymous)]
+    },
+    complete: [Function: complete],
+    endWallTime: 1764908338317,
+    error: {
+      message: 'Error: page.goto: Navigation to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa" is interrupted by another navigation to "https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAbcliel-6i06EgOI0ymHergAAAAACAAAAAAAQZgAAAAEAACAAAAAd6aP-KvJ2zUn6csAvlyy1sINMECvhYF7KyHY7c-V34gAAAAAOgAAAAAIAACAAAADEkfqKxxfp0yprOfpJ9EwhjjC5Qctksq27TWPUj4ttilAAAACamsxZVJmvbw-Bzs_pvlS74UPr4yGyRLRkYoiH0nC1RfU6tQhsxsz-UQNFHTSRP7A8dNDO9eGBIE-kFLtij5_ZxJuGyPLHTPawI8CsUBXUqEAAAADiAhg-Vn_qxIx0XU2tTGYqh5c2LcOh37VfmiLFiJPl_N4-lmBStSpW6tSroUtlam_538_YfPQ4XJt8WOeYeFlA%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639005051282721746.ZTgyMTIxNjktMTBkYS00NzEyLTg1ODgtOGIwNTJlZTViODA2MDJhY2UwMTAtY2QyZi00YjQ5LThhZDYtMzBhMWM0ZTY5ODgz&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0&sso_reload=true"\n' +
+        'Call log:\n' +
+        '\x1B[2m  - navigating to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa", waiting until "load"\x1B[22m\n',
+      stack: 'Error: page.goto: Navigation to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa" is interrupted by another navigation to "https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAbcliel-6i06EgOI0ymHergAAAAACAAAAAAAQZgAAAAEAACAAAAAd6aP-KvJ2zUn6csAvlyy1sINMECvhYF7KyHY7c-V34gAAAAAOgAAAAAIAACAAAADEkfqKxxfp0yprOfpJ9EwhjjC5Qctksq27TWPUj4ttilAAAACamsxZVJmvbw-Bzs_pvlS74UPr4yGyRLRkYoiH0nC1RfU6tQhsxsz-UQNFHTSRP7A8dNDO9eGBIE-kFLtij5_ZxJuGyPLHTPawI8CsUBXUqEAAAADiAhg-Vn_qxIx0XU2tTGYqh5c2LcOh37VfmiLFiJPl_N4-lmBStSpW6tSroUtlam_538_YfPQ4XJt8WOeYeFlA%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639005051282721746.ZTgyMTIxNjktMTBkYS00NzEyLTg1ODgtOGIwNTJlZTViODA2MDJhY2UwMTAtY2QyZi00YjQ5LThhZDYtMzBhMWM0ZTY5ODgz&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0&sso_reload=true"\n' +
+        'Call log:\n' +
+        '\x1B[2m  - navigating to "https://avs-isv-puat.sandbox.operations.dynamics.com/?prompt=login&amr_values=mfa", waiting until "load"\x1B[22m\n' +
+        '\n' +
+        '    at LoginPage.navigateTo (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\BasePage.ts:20:21)\n' +
+        '    at LoginPage.navigateToLogin (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\LoginPage.ts:34:16)\n' +
+        '    at AuthenticationManager.performTOTPLogin (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\AuthenticationManager.ts:162:28)\n' +
+        '    at AuthenticationManager.performCompleteLogin (C:\\Users\\RamyaBIN\\totp-playwright\\pages\\AuthenticationManager.ts:144:18)\n' +
+        '    at C:\\Users\\RamyaBIN\\totp-playwright\\tests\\login-setup.spec.ts:89:7',
+      cause: undefined
+    }
+  }
+}
