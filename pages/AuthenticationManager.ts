@@ -195,13 +195,13 @@ export class AuthenticationManager {
       // Step 8: Wait for successful login
       await this.loginPage.waitForLoginSuccess(this.d365Url);
       
-      // Step 9: Save session if requested
+      // Step 9: Verify homepage is loaded FIRST
+      await this.homePage.verifyHomepageLoaded();
+      
+      // Step 10: Save session AFTER homepage verification to capture all cookies/tokens
       if (saveSession) {
         await this.loginPage.saveSession();
       }
-      
-      // Step 8: Verify homepage is loaded
-      await this.homePage.verifyHomepageLoaded();
       
       console.log('🎉 Complete authentication flow successful!');
       

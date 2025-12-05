@@ -35,12 +35,16 @@ test.describe('🔐 Service Principal Authentication Test (Local)', () => {
       throw new Error('Missing Service Principal credentials');
     }
     
-    // Launch browser in headed mode to see what happens
+    // Launch browser (headless in CI, headed locally)
+    const isHeadless = process.env.CI === 'true' || process.env.HEADLESS === 'true';
     const browser = await chromium.launch({
-      headless: false, // Show browser
+      headless: isHeadless,
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=WebAuthenticationUI',
+        '--no-sandbox', // Required for CI
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'
       ]
     });
     
