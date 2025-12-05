@@ -51,14 +51,42 @@ stages:
                 Write-Host "npm version:" -ForegroundColor Cyan
                 npm --version
           
-          # Install dependencies
+          # Install dependencies with retry logic
           - task: PowerShell@2
             displayName: '📦 Install Dependencies'
             inputs:
               targetType: 'inline'
               script: |
-                Write-Host "Installing npm dependencies..." -ForegroundColor Cyan
-                npm install
+                Write-Host "Configuring npm for reliability..." -ForegroundColor Cyan
+                npm config set fetch-retries 5
+                npm config set fetch-retry-mintimeout 20000
+                npm config set fetch-retry-maxtimeout 120000
+                npm config set registry https://registry.npmjs.org/
+                
+                Write-Host "`nInstalling npm dependencies (with retries)..." -ForegroundColor Cyan
+                $maxRetries = 3
+                $retryCount = 0
+                $success = $false
+                
+                while (-not $success -and $retryCount -lt $maxRetries) {
+                  $retryCount++
+                  Write-Host "Attempt $retryCount of $maxRetries..." -ForegroundColor Yellow
+                  
+                  npm install
+                  
+                  if ($LASTEXITCODE -eq 0) {
+                    $success = $true
+                    Write-Host "✅ Dependencies installed successfully!" -ForegroundColor Green
+                  } else {
+                    Write-Host "❌ Attempt $retryCount failed. Waiting 10 seconds..." -ForegroundColor Red
+                    Start-Sleep -Seconds 10
+                  }
+                }
+                
+                if (-not $success) {
+                  Write-Host "❌ Failed to install dependencies after $maxRetries attempts" -ForegroundColor Red
+                  exit 1
+                }
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Install Playwright browsers
