@@ -43,7 +43,7 @@ export default defineConfig({
   },
 
   /* Run tests in files in parallel */
-  fullyParallel: true, // Enable parallel execution after global setup
+  fullyParallel: false, // Enable parallel execution after global setup
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
