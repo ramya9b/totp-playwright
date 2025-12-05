@@ -5,19 +5,15 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  # Option 1: Use with Managed Identity / Service Principal (Recommended for production)
-  # Requires Azure service connection: Azure-Playwright-Testing-Connection
-  
-  # Option 2: Use with Access Token (Quick setup for testing)
-  # Uncomment the line below and create variable group with PLAYWRIGHT_SERVICE_ACCESS_TOKEN
-  # - group: Playwright-Testing-Secrets
+  # Using Access Token Authentication (enabled in workspace)
+  - group: Playwright-Testing-Secrets
   
   - name: PLAYWRIGHT_SERVICE_URL
     value: 'wss://eastus.api.playwright.microsoft.com/playwrightworkspaces/03f9e658-c2b3-45a4-9689-0c639e6f99c0/browsers'
   - name: D365_URL
     value: 'https://avs-isv-puat.sandbox.operations.dynamics.com'
   - name: USE_ACCESS_TOKEN
-    value: 'false' # Set to 'true' to use access token instead of service principal
+    value: 'true' # Using access token - workspace has it enabled
 
 stages:
   - stage: Test
