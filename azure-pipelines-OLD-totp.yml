@@ -1,0 +1,196 @@
+# Azure DevOps Pipeline for Playwright D365 Tests
+# Supports TOTP (local) and Service Principal (CI/CD) authentication
+
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+  paths:
+    include:
+    - tests/*
+    - pages/*
+    - utils/*
+    - playwright.config.ts
+    - package.json
+
+pr:
+  branches:
+    include:
+    - main
+    - develop
+
+schedules:
+# Daily at 9:00 AM IST (3:30 AM UTC)
+- cron: "30 3 * * *"
+  displayName: Daily 9:00 AM IST
+  branches:
+    include:
+    - main
+  always: true
+
+# Daily at 6:00 PM IST (12:30 PM UTC)
+- cron: "30 12 * * *"
+  displayName: Daily 6:00 PM IST
+  branches:
+    include:
+    - main
+  always: true
+
+variables:
+  - group: D365-Credentials  # Contains: D365_URL, M365_USERNAME, M365_PASSWORD, TOTP_SECRET
+  - name: nodeVersion
+    value: '18.x'
+
+jobs:
+- job: PlaywrightTests
+  displayName: 'Playwright D365 Authentication Tests'
+  pool:
+    vmImage: 'ubuntu-latest'
+  
+  timeoutInMinutes: 30
+  
+  steps:
+  - task: NodeTool@0
+    displayName: 'Setup Node.js'
+    inputs:
+      versionSpec: $(nodeVersion)
+
+  - script: |
+      npm ci
+      npx playwright install --with-deps chromium
+    displayName: 'Install Dependencies'
+
+  - script: |
+      echo "=== Verifying Variable Group ==="
+      
+      # Using TOTP authentication (only supported method for D365 F&O UI)
+      echo "✅ Using TOTP authentication for D365 F&O UI automation"
+      AUTH_METHOD="TOTP"
+      
+      if [ -z "$(D365_URL)" ]; then
+        echo "ERROR: D365_URL is not set!"
+        exit 1
+      fi
+      if [ -z "$(M365_USERNAME)" ]; then
+        echo "ERROR: M365_USERNAME is not set!"
+        exit 1
+      fi
+      if [ -z "$(M365_PASSWORD)" ]; then
+        echo "ERROR: M365_PASSWORD is not set!"
+        exit 1
+      fi
+      if [ -z "$(TOTP_SECRET)" ]; then
+        echo "ERROR: TOTP_SECRET is not set!"
+        exit 1
+      fi
+      
+      if [ -z "$(D365_URL)" ]; then
+        echo "ERROR: D365_URL is not set!"
+        exit 1
+      fi
+      
+      echo "✅ All required variables for $AUTH_METHOD authentication are configured"
+    displayName: 'Verify Variables'
+    env:
+      D365_URL: $(D365_URL)
+      M365_USERNAME: $(M365_USERNAME)
+      M365_PASSWORD: $(M365_PASSWORD)
+      TOTP_SECRET: $(TOTP_SECRET)
+
+  - script: |
+      echo "D365_URL=$(D365_URL)" > .env
+      echo "M365_USERNAME=$(M365_USERNAME)" >> .env
+      echo "M365_PASSWORD=$(M365_PASSWORD)" >> .env
+      echo "TOTP_SECRET=$(TOTP_SECRET)" >> .env
+      
+      echo "=== Environment Configuration ==="
+      echo ".env file contents (masked):"
+      cat .env | sed 's/\(PASSWORD=\).*/\1***/' | sed 's/\(SECRET=\).*/\1***/'
+    displayName: 'Configure Environment'
+    env:
+      M365_USERNAME: $(M365_USERNAME)
+      M365_PASSWORD: $(M365_PASSWORD)
+      TOTP_SECRET: $(TOTP_SECRET)
+
+  - script: |
+      node verify-totp.js
+    displayName: 'Verify TOTP Generation'
+    env:
+      TOTP_SECRET: $(TOTP_SECRET)
+
+  - script: |
+      npx playwright test --reporter=html --reporter=junit --reporter=line
+    displayName: 'Run Playwright Tests (Headless Mode)'
+    continueOnError: true
+    env:
+      CI: true
+      PLAYWRIGHT_HTML_REPORT: playwright-report
+
+  - task: PublishTestResults@2
+    displayName: 'Publish Test Results'
+    condition: always()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: 'test-results/results.xml'
+      testRunTitle: 'Playwright TOTP Tests'
+      mergeTestResults: true
+      failTaskOnFailedTests: false
+
+  - script: |
+      echo "Checking for generated reports..."
+      if [ -d "playwright-report" ]; then
+        echo "✅ Playwright HTML report found"
+        ls -la playwright-report
+      else
+        echo "⚠️ No Playwright HTML report found"
+      fi
+      if [ -d "test-results" ]; then
+        echo "✅ Test results directory found"
+        ls -la test-results
+      else
+        echo "⚠️ No test-results directory found"
+      fi
+      if [ -f "auth/D365AuthFile.json" ]; then
+        echo "✅ Session file created"
+      else
+        echo "⚠️ No session file found"
+      fi
+    displayName: 'Check Generated Files'
+    condition: always()
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Playwright HTML Report'
+    condition: and(always(), or(succeeded(), failed()))
+    continueOnError: true
+    inputs:
+      pathToPublish: 'playwright-report'
+      artifactName: 'playwright-report'
+      publishLocation: 'Container'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Test Results & Screenshots'
+    condition: and(always(), or(succeeded(), failed()))
+    continueOnError: true
+    inputs:
+      pathToPublish: 'test-results'
+      artifactName: 'test-results'
+      publishLocation: 'Container'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Screenshots'
+    condition: and(always(), or(succeeded(), failed()))
+    continueOnError: true
+    inputs:
+      pathToPublish: 'screenshots'
+      artifactName: 'screenshots'
+      publishLocation: 'Container'
+
+  - script: |
+      echo "=== Listing all test artifacts ==="
+      find test-results -type f -name "*.png" -o -name "*.webm" -o -name "*.zip" | head -20
+      echo ""
+      echo "=== Listing screenshots ==="
+      ls -lh screenshots/ 2>/dev/null || echo "No screenshots directory"
+    displayName: 'List Test Artifacts'
+    condition: always()
