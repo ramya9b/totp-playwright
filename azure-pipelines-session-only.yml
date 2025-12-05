@@ -1,0 +1,96 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  - name: CI
+    value: 'true'
+  - name: D365_URL
+    value: 'https://avs-isv-puat.sandbox.operations.dynamics.com'
+
+steps:
+  # Download pre-authenticated session file from secure files
+  - task: DownloadSecureFile@1
+    name: d365AuthFile
+    displayName: '🔐 Download D365 Authentication Session'
+    inputs:
+      secureFile: 'D365AuthFile.json'
+  
+  # Setup authentication directory and copy session file
+  - powershell: |
+      Write-Host "📂 Setting up authentication directory..."
+      New-Item -ItemType Directory -Force -Path "$(System.DefaultWorkingDirectory)/auth"
+      
+      Write-Host "📋 Copying session file..."
+      Copy-Item "$(d365AuthFile.secureFilePath)" -Destination "$(System.DefaultWorkingDirectory)/auth/D365AuthFile.json"
+      
+      Write-Host "✅ Session file ready at: $(System.DefaultWorkingDirectory)/auth/D365AuthFile.json"
+      
+      # Verify file exists and has content
+      if (Test-Path "$(System.DefaultWorkingDirectory)/auth/D365AuthFile.json") {
+        $fileSize = (Get-Item "$(System.DefaultWorkingDirectory)/auth/D365AuthFile.json").Length
+        Write-Host "✅ File size: $fileSize bytes"
+      } else {
+        Write-Error "❌ Session file not found!"
+        exit 1
+      }
+    displayName: '📦 Setup Authentication Session'
+  
+  # Install Node.js
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: '📦 Install Node.js 18.x'
+  
+  # Install dependencies
+  - script: npm ci
+    displayName: '📦 Install npm dependencies'
+  
+  # Install Playwright browsers
+  - script: npx playwright install chromium
+    displayName: '🎭 Install Playwright Chromium'
+  
+  # Run Playwright tests (session-based, no login automation)
+  - script: npx playwright test
+    displayName: '🧪 Run Playwright Tests with Session Auth'
+    env:
+      CI: 'true'
+      D365_URL: $(D365_URL)
+  
+  # Publish test results
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: 'test-results/junit.xml'
+      testRunTitle: 'D365 Playwright Tests (Session Auth)'
+    displayName: '📊 Publish Test Results'
+  
+  # Publish Playwright HTML report
+  - task: PublishPipelineArtifact@1
+    condition: succeededOrFailed()
+    inputs:
+      targetPath: 'playwright-report'
+      artifact: 'playwright-report'
+      publishLocation: 'pipeline'
+    displayName: '📄 Publish Playwright HTML Report'
+  
+  # Publish test-results (videos/traces) on failure
+  - task: PublishPipelineArtifact@1
+    condition: failed()
+    inputs:
+      targetPath: 'test-results'
+      artifact: 'test-results'
+      publishLocation: 'pipeline'
+    displayName: '🎬 Publish Test Videos & Traces'
+  
+  # Publish Allure report
+  - task: PublishPipelineArtifact@1
+    condition: succeededOrFailed()
+    inputs:
+      targetPath: 'allure-report'
+      artifact: 'allure-report'
+      publishLocation: 'pipeline'
+    displayName: '📊 Publish Allure Report'
