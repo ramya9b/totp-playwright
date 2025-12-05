@@ -4,7 +4,7 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-# Force fresh pipeline run - using Ubuntu for npm registry stability
+# UPDATED: Using global-setup for authentication - commit 2e5b630
 variables:
   # Using Access Token Authentication (enabled in workspace)
   - group: Playwright-Testing-Secrets
