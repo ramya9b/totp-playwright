@@ -2,8 +2,9 @@ trigger:
   - main
 
 pool:
-  vmImage: 'ubuntu-latest'  # Switch to Ubuntu for better npm registry connectivity
+  vmImage: 'ubuntu-latest'
 
+# Force fresh pipeline run - using Ubuntu for npm registry stability
 variables:
   # Using Access Token Authentication (enabled in workspace)
   - group: Playwright-Testing-Secrets
