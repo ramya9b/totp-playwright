@@ -78,6 +78,10 @@ async function globalSetup(config: FullConfig) {
     const authManager = new AuthenticationManager(page);
     await authManager.performCompleteLogin(true);
     
+    // Additional wait to ensure D365 has set ALL authentication cookies
+    console.log('⏳ Waiting 3 additional seconds for session to fully settle...');
+    await page.waitForTimeout(3000);
+    
     // Ensure session file is created
     if (!fs.existsSync('auth')) {
       fs.mkdirSync('auth', { recursive: true });

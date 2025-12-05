@@ -198,7 +198,12 @@ export class AuthenticationManager {
       // Step 9: Verify homepage is loaded FIRST
       await this.homePage.verifyHomepageLoaded();
       
-      // Step 10: Save session AFTER homepage verification to capture all cookies/tokens
+      // Step 10: Wait for D365 to set all authentication cookies/tokens
+      // D365 sets additional session cookies after initial page load
+      this.loginPage.log('⏳ Waiting 5 seconds for D365 to complete session initialization...');
+      await this.page.waitForTimeout(5000);
+      
+      // Step 11: Save session AFTER homepage verification + extra wait
       if (saveSession) {
         await this.loginPage.saveSession();
       }
