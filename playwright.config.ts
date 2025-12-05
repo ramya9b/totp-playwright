@@ -49,7 +49,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Configure number of parallel workers */
-  workers: process.env.CI ? 10 : 4, // Parallel workers can use shared session
+  workers: process.env.CI ? 1 : 1, // Parallel workers can use shared session
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html', { 
