@@ -5,9 +5,10 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  - group: D365-Session-Credentials
   - name: CI
     value: 'true'
+  - name: D365_URL
+    value: 'https://avs-isv-puat.sandbox.operations.dynamics.com'
 
 steps:
   # Download pre-authenticated session file from secure files
