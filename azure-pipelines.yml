@@ -24,30 +24,32 @@ stages:
         timeoutInMinutes: 60
         
         steps:
-          # Download authentication session file
-          - task: DownloadSecureFile@1
-            name: d365AuthFile
-            displayName: '🔐 Download D365 Authentication Session'
-            inputs:
-              secureFile: 'D365AuthFile.json'
+          # Skip session file download - will use TOTP authentication
+          # - task: DownloadSecureFile@1
+          #   name: d365AuthFile
+          #   displayName: '🔐 Download D365 Authentication Session'
+          #   inputs:
+          #     secureFile: 'D365AuthFile.json'
+          # 
+          # - task: PowerShell@2
+          #   displayName: '📦 Setup Authentication'
+          #   inputs:
+          #     targetType: 'inline'
+          #     script: |
+          #       New-Item -ItemType Directory -Force -Path "auth"
+          #       Copy-Item "$(d365AuthFile.secureFilePath)" -Destination "auth/D365AuthFile.json"
+          #       Write-Host "✅ Session file ready"
           
-          # Setup authentication directory
+          # Use pre-installed Node.js on Azure agent (skip NodeTool to avoid Cloudflare issues)
           - task: PowerShell@2
-            displayName: '📦 Setup Authentication'
+            displayName: '📦 Verify Node.js'
             inputs:
               targetType: 'inline'
               script: |
-                New-Item -ItemType Directory -Force -Path "auth"
-                Copy-Item "$(d365AuthFile.secureFilePath)" -Destination "auth/D365AuthFile.json"
-                Write-Host "✅ Session file ready"
-          
-          # Install Node.js with retry logic
-          - task: NodeTool@0
-            inputs:
-              versionSpec: '20.x'  # Use Node 20 LTS (more stable on Azure agents)
-              checkLatest: false    # Use cached version to avoid download issues
-            displayName: '📦 Install Node.js'
-            retryCountOnTaskFailure: 3
+                Write-Host "Node.js version:" -ForegroundColor Cyan
+                node --version
+                Write-Host "npm version:" -ForegroundColor Cyan
+                npm --version
           
           # Install dependencies
           - task: PowerShell@2
@@ -56,11 +58,7 @@ stages:
               targetType: 'inline'
               script: |
                 Write-Host "Installing npm dependencies..." -ForegroundColor Cyan
-                npm ci
-                if ($LASTEXITCODE -ne 0) {
-                  Write-Host "npm ci failed, trying npm install..." -ForegroundColor Yellow
-                  npm install
-                }
+                npm install
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Install Playwright browsers
@@ -80,6 +78,9 @@ stages:
               PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
               PLAYWRIGHT_SERVICE_ACCESS_TOKEN: $(PLAYWRIGHT_SERVICE_ACCESS_TOKEN)
               D365_URL: $(D365_URL)
+              M365_USERNAME: $(M365_USERNAME)
+              M365_PASSWORD: $(M365_PASSWORD)
+              TOTP_SECRET: $(TOTP_SECRET)
               CI: 'true'
             inputs:
               targetType: 'inline'
