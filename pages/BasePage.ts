@@ -17,7 +17,7 @@ export class BasePage {
    * Navigate to a specific URL
    */
   async navigateTo(url: string): Promise<void> {
-    await this.page.goto(url);
+    await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
   }
 
   /**

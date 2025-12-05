@@ -86,12 +86,12 @@ export class MFAPage extends BasePage {
         await this.clickElement(element);
         this.log('✅ Clicked to use alternative method');
         
-        // Wait for page to load, but catch if page navigates/closes
-        try {
-          await this.page.waitForTimeout(waitTime);
-        } catch (error) {
-          this.log('ℹ️ Page navigated immediately after clicking alternative method');
-        }
+        // Wait longer for the alternative methods page to fully load
+        await this.page.waitForTimeout(5000);
+        
+        // Take screenshot to see the options
+        await this.page.screenshot({ path: 'screenshots/alternative-methods.png', fullPage: true });
+        this.log('📸 Screenshot saved: alternative-methods.png');
         
         foundAlternativeLink = true;
         
@@ -103,28 +103,27 @@ export class MFAPage extends BasePage {
           'button:has-text("Use a verification code")',
           'div:has-text("verification code from my mobile app")',
           'div[role="button"]:has-text("verification code")',
-          '[data-value*="OTP"]'
+          '[data-value*="OTP"]',
+          'div[data-value="PhoneAppNotification"]', // Sometimes this is the parent
         ];
         
         for (const codeSelector of verificationCodeSelectors) {
           const codeElement = this.page.locator(codeSelector);
-          if (await this.isElementVisible(codeElement, timeout)) {
+          if (await this.isElementVisible(codeElement, 5000)) {
             this.log(`✅ Found verification code option with selector: ${codeSelector}`);
             
-            // Click and handle immediate navigation
+            // Click and wait for TOTP field
             try {
               await this.clickElement(codeElement);
               this.log('✅ Clicked verification code option');
               
-              // Wait for navigation or TOTP field, but catch if page closes
-              try {
-                await Promise.race([
-                  this.page.waitForTimeout(waitTime),
-                  this.page.waitForURL(url => url.toString().includes('dynamics.com') || url.toString().includes('operations'))
-                ]);
-              } catch (waitError) {
-                this.log('ℹ️ Page navigated or closed after clicking verification code');
-              }
+              // Wait for TOTP field to appear
+              await this.page.waitForTimeout(5000);
+              
+              // Take screenshot
+              await this.page.screenshot({ path: 'screenshots/after-selecting-totp-method.png', fullPage: true });
+              this.log('📸 Screenshot saved: after-selecting-totp-method.png');
+              
             } catch (clickError) {
               this.log(`⚠️ Error clicking verification code: ${clickError}`);
             }
