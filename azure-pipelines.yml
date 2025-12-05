@@ -90,15 +90,15 @@ stages:
           - script: |
               echo "🚀 Running Playwright tests in standard mode..."
               echo "🌐 D365 URL: $D365_URL"
-              echo "⚡ Parallel workers: 10"
-              echo "🔐 Authentication: TOTP"
+              echo "⚡ Workers: 1 (sequential execution for session reuse)"
+              echo "🔐 Authentication: TOTP with global setup"
               echo ""
               echo "Note: Running without Microsoft Playwright Testing service due to"
               echo "      access token authentication limitations. Tests will run on"
               echo "      Azure agent with local browsers."
               echo ""
               
-              npx playwright test --workers=10
+              npx playwright test
               
               if [ $? -ne 0 ]; then
                 echo "❌ Tests failed with exit code: $?"
@@ -107,7 +107,7 @@ stages:
               
               echo ""
               echo "✅ Tests completed successfully!"
-            displayName: '🧪 Run Playwright Tests (10 Workers - Standard Mode)'
+            displayName: '🧪 Run Playwright Tests (Sequential - Global Setup)'
             env:
               D365_URL: $(D365_URL)
               M365_USERNAME: $(M365_USERNAME)
@@ -136,7 +136,7 @@ stages:
           
           # Upload test results artifacts
           - task: PublishPipelineArtifact@1
-            condition: failed()
+            condition: succeededOrFailed()
             inputs:
               targetPath: 'test-results'
               artifact: 'Test-Results-Artifacts'
