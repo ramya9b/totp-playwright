@@ -6,7 +6,9 @@ pool:
 
 variables:
   - name: PLAYWRIGHT_SERVICE_URL
-    value: '' # TODO: Add your workspace endpoint URL here
+    value: 'wss://eastus.api.playwright.microsoft.com/playwrightworkspaces/03f9e658-c2b3-45a4-9689-0c639e6f99c0/browsers'
+  - name: D365_URL
+    value: 'https://avs-isv-puat.sandbox.operations.dynamics.com'
 
 stages:
   - stage: Test
@@ -63,17 +65,21 @@ stages:
               PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
               D365_URL: $(D365_URL)
               CI: 'true'
+              # Azure CLI task automatically sets these for authentication:
+              # servicePrincipalId, servicePrincipalKey, tenantId
             inputs:
               azureSubscription: 'Azure-Playwright-Testing-Connection' # TODO: Update with your service connection name
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                Write-Host "🚀 Running Playwright tests with Microsoft Playwright Testing..."
-                Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL"
-                Write-Host "🌐 D365 URL: $env:D365_URL"
-                Write-Host "⚡ Parallel workers: 20"
+                Write-Host "🚀 Running Playwright tests with Microsoft Playwright Testing..." -ForegroundColor Cyan
+                Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL" -ForegroundColor Yellow
+                Write-Host "🌐 D365 URL: $env:D365_URL" -ForegroundColor Yellow
+                Write-Host "⚡ Parallel workers: 20" -ForegroundColor Yellow
+                Write-Host "🔐 Authentication: Microsoft Entra ID (Service Principal)" -ForegroundColor Green
                 Write-Host ""
                 
+                # Run tests with service configuration
                 npx playwright test -c playwright.service.config.ts --workers=20
                 
                 if ($LASTEXITCODE -ne 0) {
@@ -81,7 +87,9 @@ stages:
                   exit $LASTEXITCODE
                 }
                 
+                Write-Host ""
                 Write-Host "✅ Tests completed successfully!" -ForegroundColor Green
+                Write-Host "📊 View detailed results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
               addSpnToEnvironment: true
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
