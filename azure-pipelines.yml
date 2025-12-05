@@ -2,7 +2,7 @@ trigger:
   - main
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'  # Switch to Ubuntu for better npm registry connectivity
 
 variables:
   # Using Access Token Authentication (enabled in workspace)
@@ -40,66 +40,70 @@ stages:
           #       Copy-Item "$(d365AuthFile.secureFilePath)" -Destination "auth/D365AuthFile.json"
           #       Write-Host "✅ Session file ready"
           
-          # Use pre-installed Node.js on Azure agent (skip NodeTool to avoid Cloudflare issues)
-          - task: PowerShell@2
+          # Use pre-installed Node.js on Azure agent
+          - script: |
+              echo "Node.js version:"
+              node --version
+              echo "npm version:"
+              npm --version
             displayName: '📦 Verify Node.js'
-            inputs:
-              targetType: 'inline'
-              script: |
-                Write-Host "Node.js version:" -ForegroundColor Cyan
-                node --version
-                Write-Host "npm version:" -ForegroundColor Cyan
-                npm --version
           
           # Install dependencies with retry logic
-          - task: PowerShell@2
+          - script: |
+              echo "Configuring npm for reliability..."
+              npm config set fetch-retries 5
+              npm config set fetch-retry-mintimeout 20000
+              npm config set fetch-retry-maxtimeout 120000
+              npm config set registry https://registry.npmjs.org/
+              
+              echo ""
+              echo "Installing npm dependencies (with retries)..."
+              max_retries=3
+              retry_count=0
+              success=false
+              
+              while [ "$success" = false ] && [ $retry_count -lt $max_retries ]; do
+                retry_count=$((retry_count + 1))
+                echo "Attempt $retry_count of $max_retries..."
+                
+                if npm install; then
+                  success=true
+                  echo "✅ Dependencies installed successfully!"
+                else
+                  echo "❌ Attempt $retry_count failed. Waiting 10 seconds..."
+                  sleep 10
+                fi
+              done
+              
+              if [ "$success" = false ]; then
+                echo "❌ Failed to install dependencies after $max_retries attempts"
+                exit 1
+              fi
             displayName: '📦 Install Dependencies'
-            inputs:
-              targetType: 'inline'
-              script: |
-                Write-Host "Configuring npm for reliability..." -ForegroundColor Cyan
-                npm config set fetch-retries 5
-                npm config set fetch-retry-mintimeout 20000
-                npm config set fetch-retry-maxtimeout 120000
-                npm config set registry https://registry.npmjs.org/
-                
-                Write-Host "`nInstalling npm dependencies (with retries)..." -ForegroundColor Cyan
-                $maxRetries = 3
-                $retryCount = 0
-                $success = $false
-                
-                while (-not $success -and $retryCount -lt $maxRetries) {
-                  $retryCount++
-                  Write-Host "Attempt $retryCount of $maxRetries..." -ForegroundColor Yellow
-                  
-                  npm install
-                  
-                  if ($LASTEXITCODE -eq 0) {
-                    $success = $true
-                    Write-Host "✅ Dependencies installed successfully!" -ForegroundColor Green
-                  } else {
-                    Write-Host "❌ Attempt $retryCount failed. Waiting 10 seconds..." -ForegroundColor Red
-                    Start-Sleep -Seconds 10
-                  }
-                }
-                
-                if (-not $success) {
-                  Write-Host "❌ Failed to install dependencies after $maxRetries attempts" -ForegroundColor Red
-                  exit 1
-                }
-              workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Install Playwright browsers
-          - task: PowerShell@2
+          - script: npx playwright install --with-deps
             displayName: '🎭 Install Playwright Browsers'
-            inputs:
-              targetType: 'inline'
-              script: 'npx playwright install --with-deps'
-              workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Run Playwright tests with Microsoft Playwright Testing service
-          # Supports both Service Principal (via AzureCLI) and Access Token authentication
-          - task: PowerShell@2
+          - script: |
+              echo "🚀 Running Playwright tests with Access Token authentication..."
+              echo "📊 Service URL: $PLAYWRIGHT_SERVICE_URL"
+              echo "🌐 D365 URL: $D365_URL"
+              echo "⚡ Parallel workers: 20"
+              echo "🔐 Authentication: Access Token + TOTP"
+              echo ""
+              
+              npx playwright test -c playwright.service.config.ts --workers=20
+              
+              if [ $? -ne 0 ]; then
+                echo "❌ Tests failed with exit code: $?"
+                exit $?
+              fi
+              
+              echo ""
+              echo "✅ Tests completed successfully!"
+              echo "📊 View results at: https://playwright.microsoft.com/"
             condition: eq(variables['USE_ACCESS_TOKEN'], 'true')
             displayName: '🧪 Run Playwright Tests - Access Token Auth (20 Workers)'
             env:
@@ -110,27 +114,6 @@ stages:
               M365_PASSWORD: $(M365_PASSWORD)
               TOTP_SECRET: $(TOTP_SECRET)
               CI: 'true'
-            inputs:
-              targetType: 'inline'
-              script: |
-                Write-Host "🚀 Running Playwright tests with Access Token authentication..." -ForegroundColor Cyan
-                Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL" -ForegroundColor Yellow
-                Write-Host "🌐 D365 URL: $env:D365_URL" -ForegroundColor Yellow
-                Write-Host "⚡ Parallel workers: 20" -ForegroundColor Yellow
-                Write-Host "🔐 Authentication: Access Token" -ForegroundColor Green
-                Write-Host ""
-                
-                npx playwright test -c playwright.service.config.ts --workers=20
-                
-                if ($LASTEXITCODE -ne 0) {
-                  Write-Host "❌ Tests failed with exit code: $LASTEXITCODE" -ForegroundColor Red
-                  exit $LASTEXITCODE
-                }
-                
-                Write-Host ""
-                Write-Host "✅ Tests completed successfully!" -ForegroundColor Green
-                Write-Host "📊 View results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
-              workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Publish test results
           - task: PublishTestResults@2
