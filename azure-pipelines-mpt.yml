@@ -5,10 +5,19 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
+  # Option 1: Use with Managed Identity / Service Principal (Recommended for production)
+  # Requires Azure service connection: Azure-Playwright-Testing-Connection
+  
+  # Option 2: Use with Access Token (Quick setup for testing)
+  # Uncomment the line below and create variable group with PLAYWRIGHT_SERVICE_ACCESS_TOKEN
+  # - group: Playwright-Testing-Secrets
+  
   - name: PLAYWRIGHT_SERVICE_URL
     value: 'wss://eastus.api.playwright.microsoft.com/playwrightworkspaces/03f9e658-c2b3-45a4-9689-0c639e6f99c0/browsers'
   - name: D365_URL
     value: 'https://avs-isv-puat.sandbox.operations.dynamics.com'
+  - name: USE_ACCESS_TOKEN
+    value: 'false' # Set to 'true' to use access token instead of service principal
 
 stages:
   - stage: Test
@@ -59,8 +68,40 @@ stages:
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Run Playwright tests with Microsoft Playwright Testing service
+          # Supports both Service Principal (via AzureCLI) and Access Token authentication
+          - task: PowerShell@2
+            condition: eq(variables['USE_ACCESS_TOKEN'], 'true')
+            displayName: '🧪 Run Playwright Tests - Access Token Auth (20 Workers)'
+            env:
+              PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
+              PLAYWRIGHT_SERVICE_ACCESS_TOKEN: $(PLAYWRIGHT_SERVICE_ACCESS_TOKEN)
+              D365_URL: $(D365_URL)
+              CI: 'true'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "🚀 Running Playwright tests with Access Token authentication..." -ForegroundColor Cyan
+                Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL" -ForegroundColor Yellow
+                Write-Host "🌐 D365 URL: $env:D365_URL" -ForegroundColor Yellow
+                Write-Host "⚡ Parallel workers: 20" -ForegroundColor Yellow
+                Write-Host "🔐 Authentication: Access Token" -ForegroundColor Green
+                Write-Host ""
+                
+                npx playwright test -c playwright.service.config.ts --workers=20
+                
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "❌ Tests failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+                  exit $LASTEXITCODE
+                }
+                
+                Write-Host ""
+                Write-Host "✅ Tests completed successfully!" -ForegroundColor Green
+                Write-Host "📊 View results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+          
           - task: AzureCLI@2
-            displayName: '🧪 Run Playwright Tests (20 Parallel Workers)'
+            condition: eq(variables['USE_ACCESS_TOKEN'], 'false')
+            displayName: '🧪 Run Playwright Tests - Service Principal Auth (20 Workers)'
             env:
               PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
               D365_URL: $(D365_URL)
