@@ -77,21 +77,10 @@ async function globalSetup(config: FullConfig) {
     console.log('🚀 Starting D365 TOTP authentication...');
     
     const authManager = new AuthenticationManager(page);
-    await authManager.performCompleteLogin(true);
-    
-    // Ensure session file is created
-    if (!fs.existsSync('auth')) {
-      fs.mkdirSync('auth', { recursive: true });
-    }
-    
-    // Save storage state for all tests to reuse
-    await context.storageState({ path: authFile });
+    await authManager.performCompleteLogin(true); // This already saves the session
     
     console.log(`✅ Global setup complete - session saved to ${authFile}`);
     console.log('📊 Session file size:', fs.statSync(authFile).size, 'bytes');
-    
-    // Wait a bit to ensure session is fully established
-    await page.waitForTimeout(2000);
     
     await context.close();
   } catch (error) {

@@ -210,6 +210,15 @@ export class AuthenticationManager {
       const cookies = await this.page.context().cookies();
       this.loginPage.log(`🍪 Total cookies captured: ${cookies.length}`);
       
+      // Log critical D365/Azure AD cookies
+      const criticalCookies = cookies.filter(c => 
+        c.name.includes('ESTSAUTH') || 
+        c.name.includes('SignIn') ||
+        c.name.includes('.AspNet.') ||
+        c.name.includes('dynamics.com')
+      );
+      this.loginPage.log(`🔑 Critical auth cookies: ${criticalCookies.map(c => c.name).join(', ')}`);
+      
       // Step 13: Save session AFTER network idle + buffer
       if (saveSession) {
         await this.loginPage.saveSession();

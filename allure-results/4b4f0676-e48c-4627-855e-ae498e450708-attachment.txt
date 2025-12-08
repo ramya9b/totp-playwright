@@ -1,0 +1,42 @@
+
+================================================================================
+🧪 TESTING SERVICE PRINCIPAL AUTHENTICATION LOCALLY
+================================================================================
+
+📋 Environment Variables:
+   D365_URL: ✅
+   AZURE_TENANT_ID: ✅
+   AZURE_CLIENT_ID: ✅
+   AZURE_CLIENT_SECRET: ✅ (***UaXA)
+
+🚀 Initializing AuthenticationManager with Service Principal...
+
+🔧 CI Environment: false
+🔧 Service Principal Credentials Available: true
+✅ Using TOTP authentication for D365 F&O UI automation
+🔑 Performing authentication (should skip login)...
+
+🚀 Starting complete D365 authentication flow...
+🔍 Checking if already authenticated...
+✅ Already authenticated - skipping login flow
+📍 Current URL: https://avs-isv-puat.sandbox.operations.dynamics.com/
+🌐 [chromium] ✅ Session appears valid
+✅ Session validated successfully
+
+================================================================================
+✅ SERVICE PRINCIPAL AUTHENTICATION SUCCESSFUL!
+================================================================================
+
+📍 Current URL: https://avs-isv-puat.sandbox.operations.dynamics.com/
+📄 Page Title: 
+
+🎉 SUCCESS! We are on D365 home page!
+⚡ Login was skipped using Service Principal!
+
+🖼️  Taking screenshot...
+✅ Screenshot saved: screenshots/sp-auth-test-success.png
+
+⏸️  Browser will stay open for 10 seconds so you can see the result...
+
+🏁 Test completed
+

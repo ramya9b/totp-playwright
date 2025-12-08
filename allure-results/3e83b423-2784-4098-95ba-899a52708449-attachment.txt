@@ -1,2 +1,0 @@
-🔧 Browser mode: HEADED
-🔧 CI environment: false
