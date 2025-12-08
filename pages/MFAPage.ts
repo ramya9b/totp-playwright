@@ -26,11 +26,18 @@ export class MFAPage extends BasePage {
     const currentUrl = this.page.url();
     this.log(`📍 Current URL: ${currentUrl}`);
     
-    if (currentUrl.includes('dynamics.com') || 
-        currentUrl.includes('operations.dynamics') ||
-        currentUrl.includes('businesscentral.dynamics')) {
-      this.log('✅ Already on D365 - MFA not required or already completed');
-      return;
+    // Check the hostname (not the full URL) to avoid matching redirect parameters
+    try {
+      const urlObj = new URL(currentUrl);
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      if (hostname.includes('dynamics.com') && 
+          !hostname.includes('login.microsoftonline.com')) {
+        this.log('✅ Already on D365 - MFA not required or already completed');
+        return;
+      }
+    } catch (error) {
+      this.log(`⚠️ Could not parse URL: ${currentUrl}`);
     }
     
     // Check if "Stay signed in?" prompt is visible (means MFA was skipped)
