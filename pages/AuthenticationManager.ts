@@ -198,12 +198,19 @@ export class AuthenticationManager {
       // Step 9: Verify homepage is loaded FIRST
       await this.homePage.verifyHomepageLoaded();
       
-      // Step 10: Wait for D365 to set all authentication cookies/tokens
-      // D365 sets additional session cookies after initial page load
-      this.loginPage.log('⏳ Waiting 5 seconds for D365 to complete session initialization...');
-      await this.page.waitForTimeout(5000);
+      // Step 10: Wait for network to be completely idle (all cookies/tokens set)
+      this.loginPage.log('⏳ Waiting for network to be idle (all background requests complete)...');
+      await this.page.waitForLoadState('networkidle', { timeout: 30000 });
       
-      // Step 11: Save session AFTER homepage verification + extra wait
+      // Step 11: Additional buffer to ensure D365 session is fully initialized
+      this.loginPage.log('⏳ Additional 3-second buffer for session stability...');
+      await this.page.waitForTimeout(3000);
+      
+      // Step 12: Log cookies for debugging
+      const cookies = await this.page.context().cookies();
+      this.loginPage.log(`🍪 Total cookies captured: ${cookies.length}`);
+      
+      // Step 13: Save session AFTER network idle + buffer
       if (saveSession) {
         await this.loginPage.saveSession();
       }
