@@ -13,10 +13,11 @@ async function globalSetup(config: FullConfig) {
   
   const authFile = path.join(process.cwd(), 'auth', 'D365AuthFile.json');
   
-  // Check if we're in CI and session already exists (from cache)
-  if (process.env.CI && fs.existsSync(authFile)) {
-    console.log('✅ Existing session found in CI - skipping login');
-    return;
+  // Always perform fresh authentication to ensure complete session capture
+  // Previous session files may be incomplete or expired
+  if (fs.existsSync(authFile)) {
+    console.log('🗑️  Removing old session file to force fresh authentication...');
+    fs.unlinkSync(authFile);
   }
   
   // Launch browser with stealth mode
