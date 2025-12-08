@@ -34,7 +34,6 @@ test.describe('🔐 Service Principal Authentication Test (Local)', () => {
       console.log('💡 Make sure your .env file has all required values');
       throw new Error('Missing Service Principal credentials');
     }
-    
     // Launch browser (headless in CI, headed locally)
     const isHeadless = process.env.CI === 'true' || process.env.HEADLESS === 'true';
     const browser = await chromium.launch({
