@@ -120,8 +120,8 @@ stages:
             condition: succeededOrFailed()
             inputs:
               testResultsFormat: 'JUnit'
-              testResultsFiles: '**/test-results/junit.xml'
-              testRunTitle: 'D365 Playwright Tests (Microsoft Playwright Testing)'
+              testResultsFiles: '**/test-results/results.xml'
+              testRunTitle: 'D365 Playwright Tests (Sequential Execution)'
               mergeTestResults: true
             displayName: '📊 Publish Test Results'
           
