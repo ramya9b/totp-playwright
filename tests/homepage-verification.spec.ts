@@ -6,6 +6,7 @@ import { HomePage } from '../pages';
  * D365 Finance and Operations Homepage Verification
  * Verifies homepage content and functionality after login
  */
+test.use({ storageState: 'auth/D365AuthFile.json' });
 test.describe('🏠 D365 Homepage Verification', () => {
   
   test.beforeEach(async () => {
