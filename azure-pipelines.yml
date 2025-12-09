@@ -2,9 +2,8 @@ trigger:
   - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'windows-latest'
 
-# UPDATED: Using global-setup for authentication - commit 2e5b630
 variables:
   # Using Access Token Authentication (enabled in workspace)
   - group: Playwright-Testing-Secrets
@@ -25,103 +24,119 @@ stages:
         timeoutInMinutes: 60
         
         steps:
-          # Skip session file download - will use TOTP authentication
-          # - task: DownloadSecureFile@1
-          #   name: d365AuthFile
-          #   displayName: '🔐 Download D365 Authentication Session'
-          #   inputs:
-          #     secureFile: 'D365AuthFile.json'
-          # 
-          # - task: PowerShell@2
-          #   displayName: '📦 Setup Authentication'
-          #   inputs:
-          #     targetType: 'inline'
-          #     script: |
-          #       New-Item -ItemType Directory -Force -Path "auth"
-          #       Copy-Item "$(d365AuthFile.secureFilePath)" -Destination "auth/D365AuthFile.json"
-          #       Write-Host "✅ Session file ready"
+          # Download authentication session file
+          - task: DownloadSecureFile@1
+            name: d365AuthFile
+            displayName: '🔐 Download D365 Authentication Session'
+            inputs:
+              secureFile: 'D365AuthFile.json'
           
-          # Use pre-installed Node.js on Azure agent
-          - script: |
-              echo "Node.js version:"
-              node --version
-              echo "npm version:"
-              npm --version
-            displayName: '📦 Verify Node.js'
+          # Setup authentication directory
+          - task: PowerShell@2
+            displayName: '📦 Setup Authentication'
+            inputs:
+              targetType: 'inline'
+              script: |
+                New-Item -ItemType Directory -Force -Path "auth"
+                Copy-Item "$(d365AuthFile.secureFilePath)" -Destination "auth/D365AuthFile.json"
+                Write-Host "✅ Session file ready"
           
-          # Install dependencies with retry logic
-          - script: |
-              echo "Configuring npm for reliability..."
-              npm config set fetch-retries 5
-              npm config set fetch-retry-mintimeout 20000
-              npm config set fetch-retry-maxtimeout 120000
-              npm config set registry https://registry.npmjs.org/
-              
-              echo ""
-              echo "Installing npm dependencies (with retries)..."
-              max_retries=3
-              retry_count=0
-              success=false
-              
-              while [ "$success" = false ] && [ $retry_count -lt $max_retries ]; do
-                retry_count=$((retry_count + 1))
-                echo "Attempt $retry_count of $max_retries..."
-                
-                if npm install; then
-                  success=true
-                  echo "✅ Dependencies installed successfully!"
-                else
-                  echo "❌ Attempt $retry_count failed. Waiting 10 seconds..."
-                  sleep 10
-                fi
-              done
-              
-              if [ "$success" = false ]; then
-                echo "❌ Failed to install dependencies after $max_retries attempts"
-                exit 1
-              fi
+          # Install Node.js
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '18.x'
+            displayName: '📦 Install Node.js'
+          
+          # Install dependencies
+          - task: PowerShell@2
             displayName: '📦 Install Dependencies'
+            inputs:
+              targetType: 'inline'
+              script: 'npm ci'
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Install Playwright browsers
-          - script: npx playwright install --with-deps chromium
+          - task: PowerShell@2
             displayName: '🎭 Install Playwright Browsers'
+            inputs:
+              targetType: 'inline'
+              script: 'npx playwright install --with-deps'
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
           
-          # Run Playwright tests (standard mode - MPT service causing auth issues)
-          - script: |
-              echo "🚀 Running Playwright tests in standard mode..."
-              echo "🌐 D365 URL: $D365_URL"
-              echo "⚡ Workers: 1 (sequential execution for session reuse)"
-              echo "🔐 Authentication: TOTP with global setup"
-              echo ""
-              echo "Note: Running without Microsoft Playwright Testing service due to"
-              echo "      access token authentication limitations. Tests will run on"
-              echo "      Azure agent with local browsers."
-              echo ""
-              
-              npx playwright test
-              
-              if [ $? -ne 0 ]; then
-                echo "❌ Tests failed with exit code: $?"
-                exit $?
-              fi
-              
-              echo ""
-              echo "✅ Tests completed successfully!"
-            displayName: '🧪 Run Playwright Tests (Sequential - Global Setup)'
+          # Run Playwright tests with Microsoft Playwright Testing service
+          # Supports both Service Principal (via AzureCLI) and Access Token authentication
+          - task: PowerShell@2
+            condition: eq(variables['USE_ACCESS_TOKEN'], 'true')
+            displayName: '🧪 Run Playwright Tests - Access Token Auth (20 Workers)'
             env:
+              PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
+              PLAYWRIGHT_SERVICE_ACCESS_TOKEN: $(PLAYWRIGHT_SERVICE_ACCESS_TOKEN)
               D365_URL: $(D365_URL)
-              M365_USERNAME: $(M365_USERNAME)
-              M365_PASSWORD: $(M365_PASSWORD)
-              TOTP_SECRET: $(TOTP_SECRET)
               CI: 'true'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "🚀 Running Playwright tests with Access Token authentication..." -ForegroundColor Cyan
+                Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL" -ForegroundColor Yellow
+                Write-Host "🌐 D365 URL: $env:D365_URL" -ForegroundColor Yellow
+                Write-Host "⚡ Parallel workers: 20" -ForegroundColor Yellow
+                Write-Host "🔐 Authentication: Access Token" -ForegroundColor Green
+                Write-Host ""
+                
+                npx playwright test -c playwright.service.config.ts --workers=20
+                
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "❌ Tests failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+                  exit $LASTEXITCODE
+                }
+                
+                Write-Host ""
+                Write-Host "✅ Tests completed successfully!" -ForegroundColor Green
+                Write-Host "📊 View results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+          
+          - task: AzureCLI@2
+            condition: eq(variables['USE_ACCESS_TOKEN'], 'false')
+            displayName: '🧪 Run Playwright Tests - Service Principal Auth (20 Workers)'
+            env:
+              PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
+              D365_URL: $(D365_URL)
+              CI: 'true'
+              # Azure CLI task automatically sets these for authentication:
+              # servicePrincipalId, servicePrincipalKey, tenantId
+            inputs:
+              azureSubscription: 'Azure-Playwright-Testing-Connection' # TODO: Update with your service connection name
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "🚀 Running Playwright tests with Microsoft Playwright Testing..." -ForegroundColor Cyan
+                Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL" -ForegroundColor Yellow
+                Write-Host "🌐 D365 URL: $env:D365_URL" -ForegroundColor Yellow
+                Write-Host "⚡ Parallel workers: 20" -ForegroundColor Yellow
+                Write-Host "🔐 Authentication: Microsoft Entra ID (Service Principal)" -ForegroundColor Green
+                Write-Host ""
+                
+                # Run tests with service configuration
+                npx playwright test -c playwright.service.config.ts --workers=20
+                
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "❌ Tests failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+                  exit $LASTEXITCODE
+                }
+                
+                Write-Host ""
+                Write-Host "✅ Tests completed successfully!" -ForegroundColor Green
+                Write-Host "📊 View detailed results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
+              addSpnToEnvironment: true
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
           
           # Publish test results
           - task: PublishTestResults@2
             condition: succeededOrFailed()
             inputs:
               testResultsFormat: 'JUnit'
-              testResultsFiles: '**/test-results/results.xml'
-              testRunTitle: 'D365 Playwright Tests (Sequential Execution)'
+              testResultsFiles: '**/test-results/junit.xml'
+              testRunTitle: 'D365 Playwright Tests (Microsoft Playwright Testing)'
               mergeTestResults: true
             displayName: '📊 Publish Test Results'
           
@@ -136,7 +151,7 @@ stages:
           
           # Upload test results artifacts
           - task: PublishPipelineArtifact@1
-            condition: succeededOrFailed()
+            condition: failed()
             inputs:
               targetPath: 'test-results'
               artifact: 'Test-Results-Artifacts'
