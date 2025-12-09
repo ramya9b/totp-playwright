@@ -27,5 +27,8 @@ export default defineConfig(
     If you are using more reporters, please update your configuration accordingly.
     */
     reporter: [['list'], ['@azure/microsoft-playwright-testing/reporter']],
+    
+    /* DISABLE global setup for cloud browsers - each test should handle its own authentication */
+    globalSetup: undefined,
   }
 );
