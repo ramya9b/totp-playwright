@@ -21,12 +21,13 @@ export default defineConfig(
     useCloudHostedBrowsers: true // Set to false if you want to only use reporting and not cloud hosted browsers
   }),
   {
-    /* 
-    Playwright Testing service reporter is added by default.
-    This will override any reporter options specified in the base playwright config.
-    If you are using more reporters, please update your configuration accordingly.
-    */
-    reporter: [['list'], ['@azure/microsoft-playwright-testing/reporter']],
+    /* Use standard Playwright reporters instead of MPT reporter to avoid initialization errors */
+    reporter: [
+      ['list'],
+      ['html', { outputFolder: 'playwright-report', open: 'never' }],
+      ['json', { outputFile: 'test-results/results.json' }],
+      ['junit', { outputFile: 'test-results/results.xml' }]
+    ],
     
     /* DISABLE global setup for cloud browsers - each test should handle its own authentication */
     globalSetup: undefined,
