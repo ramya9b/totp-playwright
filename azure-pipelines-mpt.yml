@@ -95,41 +95,6 @@ stages:
                 Write-Host "📊 View results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
-          - task: AzureCLI@2
-            condition: eq(variables['USE_ACCESS_TOKEN'], 'false')
-            displayName: '🧪 Run Playwright Tests - Service Principal Auth (20 Workers)'
-            env:
-              PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
-              D365_URL: $(D365_URL)
-              CI: 'true'
-              # Azure CLI task automatically sets these for authentication:
-              # servicePrincipalId, servicePrincipalKey, tenantId
-            inputs:
-              azureSubscription: 'Azure-Playwright-Testing-Connection' # TODO: Update with your service connection name
-              scriptType: 'pscore'
-              scriptLocation: 'inlineScript'
-              inlineScript: |
-                Write-Host "🚀 Running Playwright tests with Microsoft Playwright Testing..." -ForegroundColor Cyan
-                Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL" -ForegroundColor Yellow
-                Write-Host "🌐 D365 URL: $env:D365_URL" -ForegroundColor Yellow
-                Write-Host "⚡ Parallel workers: 20" -ForegroundColor Yellow
-                Write-Host "🔐 Authentication: Microsoft Entra ID (Service Principal)" -ForegroundColor Green
-                Write-Host ""
-                
-                # Run tests with service configuration
-                npx playwright test -c playwright.service.config.ts --workers=20
-                
-                if ($LASTEXITCODE -ne 0) {
-                  Write-Host "❌ Tests failed with exit code: $LASTEXITCODE" -ForegroundColor Red
-                  exit $LASTEXITCODE
-                }
-                
-                Write-Host ""
-                Write-Host "✅ Tests completed successfully!" -ForegroundColor Green
-                Write-Host "📊 View detailed results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
-              addSpnToEnvironment: true
-              workingDirectory: '$(System.DefaultWorkingDirectory)'
-          
           # Publish test results
           - task: PublishTestResults@2
             condition: succeededOrFailed()
