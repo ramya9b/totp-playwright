@@ -79,7 +79,7 @@ stages:
                 Write-Host "🚀 Running Playwright tests with Access Token authentication..." -ForegroundColor Cyan
                 Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL" -ForegroundColor Yellow
                 Write-Host "🌐 D365 URL: $env:D365_URL" -ForegroundColor Yellow
-                Write-Host "⚡ Parallel workers: 20" -ForegroundColor Yellow
+                Write-Host "⚡ Parallel workers: 1" -ForegroundColor Yellow
                 Write-Host "🔐 Authentication: Access Token" -ForegroundColor Green
                 Write-Host ""
                 
