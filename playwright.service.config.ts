@@ -12,8 +12,8 @@ export default defineConfig({
     storageState: 'auth/D365AuthFile.json',
     baseURL: process.env.D365_URL,
     trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    screenshot: 'on',
+    video: 'on',
   },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
