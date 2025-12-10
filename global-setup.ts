@@ -12,18 +12,27 @@ async function globalSetup(config: FullConfig) {
   console.log('\n🔧 === GLOBAL SETUP: D365 Authentication ===\n');
   
   const authFile = path.join(process.cwd(), 'auth', 'D365AuthFile.json');
+  const isCI = process.env.CI === 'true';
   
-  // Always perform fresh authentication to ensure complete session capture
-  // Previous session files may be incomplete or expired
-  if (fs.existsSync(authFile)) {
-    console.log('🗑️  Removing old session file to force fresh authentication...');
+  // In CI: Use existing session file (downloaded from Secure Files)
+  // Locally: Generate fresh session with TOTP
+  if (isCI && fs.existsSync(authFile)) {
+    console.log('✅ CI Environment: Using existing session file from Secure Files');
+    console.log(`📄 Session file: ${authFile}`);
+    console.log(`📊 Session file size: ${fs.statSync(authFile).size} bytes`);
+    console.log('⏩ Skipping global setup - tests will use stored session');
+    return; // Exit early - let tests use the session file
+  }
+  
+  if (!isCI && fs.existsSync(authFile)) {
+    console.log('🗑️  Local environment: Removing old session to generate fresh one...');
     fs.unlinkSync(authFile);
   }
   
   // Launch browser with stealth mode
-  const isHeadless = process.env.CI === 'true' || process.env.HEADLESS === 'true';
+  const isHeadless = process.env.HEADLESS === 'true';
   console.log(`🔧 Browser mode: ${isHeadless ? 'HEADLESS' : 'HEADED'}`);
-  console.log(`🔧 CI environment: ${process.env.CI || 'false'}`);
+  console.log(`🔧 CI environment: ${isCI}`);
   
   const browser = await chromium.launch({
     headless: isHeadless,
