@@ -4,8 +4,11 @@ import { AuthenticationManager } from '../pages/AuthenticationManager';
 /**
  * Test Service Principal Authentication Locally
  * This test verifies that Service Principal auth works with your credentials
+ * SKIP IN CI: This test performs fresh authentication and requires TOTP_SECRET
  */
 test.describe('🔐 Service Principal Authentication Test (Local)', () => {
+  
+  test.skip(({ }, testInfo) => process.env.CI === 'true', 'Skipping in CI - requires TOTP credentials');
   
   test('Verify Service Principal auth and skip login', async () => {
     test.setTimeout(120000); // 2 minutes timeout
