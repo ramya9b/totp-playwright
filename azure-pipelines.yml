@@ -67,7 +67,7 @@ stages:
           # Supports both Service Principal (via AzureCLI) and Access Token authentication
           - task: PowerShell@2
             condition: eq(variables['USE_ACCESS_TOKEN'], 'true')
-            displayName: '🧪 Run Playwright Tests - Access Token Auth (20 Workers)'
+            displayName: '🧪 Run Playwright Tests - Access Token Auth (1 Worker)'
             env:
               PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
               PLAYWRIGHT_SERVICE_ACCESS_TOKEN: $(PLAYWRIGHT_SERVICE_ACCESS_TOKEN)
@@ -83,7 +83,7 @@ stages:
                 Write-Host "🔐 Authentication: Access Token" -ForegroundColor Green
                 Write-Host ""
                 
-                npx playwright test -c playwright.service.config.ts --workers=20
+                npx playwright test -c playwright.service.config.ts --workers=1
                 
                 if ($LASTEXITCODE -ne 0) {
                   Write-Host "❌ Tests failed with exit code: $LASTEXITCODE" -ForegroundColor Red
