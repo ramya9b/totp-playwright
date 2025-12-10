@@ -1,41 +1,161 @@
 trigger:
-  branches:
-    include:
-      - main
+  - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'windows-latest'
 
-steps:
-- task: NodeTool@0
-  displayName: 'Use Node.js'
-  inputs:
-    versionSpec: '20.x'
+variables:
+  # Using Access Token Authentication (enabled in workspace)
+  - group: Playwright-Testing-Secrets
+  
+  - name: PLAYWRIGHT_SERVICE_URL
+    value: 'wss://eastus.api.playwright.microsoft.com/playwrightworkspaces/03f9e658-c2b3-45a4-9689-0c639e6f99c0/browsers'
+  - name: D365_URL
+    value: 'https://avs-isv-puat.sandbox.operations.dynamics.com'
+  - name: USE_ACCESS_TOKEN
+    value: 'true' # Using access token - workspace has it enabled
 
-- script: |
-    npm ci
-    npx playwright install --with-deps
-  displayName: 'Install dependencies & Playwright browsers'
-
-- script: |
-    npx playwright test --config=playwright.service.config.ts
-  displayName: 'Run Playwright tests in Microsoft Playwright Testing'
-  env:
-    PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
-    PLAYWRIGHT_SERVICE_ACCESS_TOKEN: $(PLAYWRIGHT_SERVICE_ACCESS_TOKEN)
-- task: PublishTestResults@2
-  displayName: 'Publish JUnit results'
-  inputs:
-    testResultsFormat: 'JUnit'
-    testResultsFiles: 'results.xml'
-    failTaskOnFailedTests: true
-
-- task: PublishPipelineArtifact@1
-  displayName: 'Publish Playwright HTML report'
-  inputs:
-    targetPath: 'playwright-report'
-    artifact: 'playwright-report'
-    publishLocation: 'pipeline'
-              failTaskOnFailedTests: true
-    testRunTitle: 'Playwright Tests Results'
+stages:
+  - stage: Test
+    displayName: 'Run Playwright Tests with Microsoft Playwright Testing'
+    jobs:
+      - job: PlaywrightTests
+        displayName: 'Execute Tests at Scale'
+        timeoutInMinutes: 60
+        
+        steps:
+          # Download authentication session file
+          - task: DownloadSecureFile@1
+            name: d365AuthFile
+            displayName: '🔐 Download D365 Authentication Session'
+            inputs:
+              secureFile: 'D365AuthFile.json'
+          
+          # Setup authentication directory
+          - task: PowerShell@2
+            displayName: '📦 Setup Authentication'
+            inputs:
+              targetType: 'inline'
+              script: |
+                New-Item -ItemType Directory -Force -Path "auth"
+                Copy-Item "$(d365AuthFile.secureFilePath)" -Destination "auth/D365AuthFile.json"
+                Write-Host "✅ Session file ready"
+          
+          # Install Node.js
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+            displayName: '📦 Install Node.js'
+          
+          # Install dependencies
+          - task: PowerShell@2
+            displayName: '📦 Install Dependencies'
+            inputs:
+              targetType: 'inline'
+              script: 'npm ci'
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+          
+          # Install Playwright browsers
+          - task: PowerShell@2
+            displayName: '🎭 Install Playwright Browsers'
+            inputs:
+              targetType: 'inline'
+              script: 'npx playwright install --with-deps'
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+          
+          # Run Playwright tests with Microsoft Playwright Testing service
+          # Supports both Service Principal (via AzureCLI) and Access Token authentication
+          - task: PowerShell@2
+            condition: eq(variables['USE_ACCESS_TOKEN'], 'true')
+            displayName: '🧪 Run Playwright Tests - Access Token Auth (1 Worker)'
+            env:
+              PLAYWRIGHT_SERVICE_URL: $(PLAYWRIGHT_SERVICE_URL)
+              PLAYWRIGHT_SERVICE_ACCESS_TOKEN: $(PLAYWRIGHT_SERVICE_ACCESS_TOKEN)
+              D365_URL: $(D365_URL)
+              CI: 'true'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "🚀 Running Playwright tests with Access Token authentication..." -ForegroundColor Cyan
+                Write-Host "📊 Service URL: $env:PLAYWRIGHT_SERVICE_URL" -ForegroundColor Yellow
+                Write-Host "🌐 D365 URL: $env:D365_URL" -ForegroundColor Yellow
+                Write-Host "⚡ Parallel workers: 1" -ForegroundColor Yellow
+                Write-Host "🔐 Authentication: Access Token" -ForegroundColor Green
+                Write-Host ""
+                
+                npx playwright test -c playwright.service.config.ts --workers=1
+                
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "❌ Tests failed with exit code: $LASTEXITCODE" -ForegroundColor Red
+                  exit $LASTEXITCODE
+                }
+                
+                Write-Host ""
+                Write-Host "✅ Tests completed successfully!" -ForegroundColor Green
+                Write-Host "📊 View results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+          
+          # Publish test results
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'JUnit'
               testResultsFiles: '**/test-results/junit.xml'
+              testRunTitle: 'D365 Playwright Tests (Microsoft Playwright Testing)'
+              mergeTestResults: true
+            displayName: '📊 Publish Test Results'
+          
+          # Upload Playwright HTML report
+          - task: PublishPipelineArtifact@1
+            condition: succeededOrFailed()
+            inputs:
+              targetPath: 'playwright-report'
+              artifact: 'Playwright-HTML-Report'
+              publishLocation: 'pipeline'
+            displayName: '📄 Upload Playwright HTML Report'
+          
+          # Upload test results artifacts
+          - task: PublishPipelineArtifact@1
+            condition: failed()
+            inputs:
+              targetPath: 'test-results'
+              artifact: 'Test-Results-Artifacts'
+              publishLocation: 'pipeline'
+            displayName: '📸 Upload Test Artifacts (Screenshots/Videos)'
+          
+          # Upload Allure results
+          - task: PublishPipelineArtifact@1
+            condition: succeededOrFailed()
+            inputs:
+              targetPath: 'allure-results'
+              artifact: 'Allure-Results'
+              publishLocation: 'pipeline'
+            displayName: '📊 Upload Allure Results'
+
+  # Generate Allure Report
+  - stage: Report
+    displayName: 'Generate Allure Report'
+    dependsOn: Test
+    condition: succeededOrFailed()
+    jobs:
+      - job: AllureReport
+        displayName: 'Generate Allure HTML Report'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: 'Allure-Results'
+              path: '$(System.DefaultWorkingDirectory)/allure-results'
+          
+          - script: |
+              npm install -g allure-commandline
+              allure generate allure-results --clean -o allure-report
+            displayName: 'Generate Allure Report'
+          
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: 'allure-report'
+              artifact: 'Allure-HTML-Report'
+              publishLocation: 'pipeline'
+            displayName: 'Publish Allure HTML Report'
