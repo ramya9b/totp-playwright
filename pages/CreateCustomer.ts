@@ -517,6 +517,11 @@ export class CreateCustomerPage extends BasePage {
               this.log(`✅ Customer group filled and Tab pressed: ${data.customerGroup}`);
             }
             await this.page.waitForTimeout(500);
+            
+            // Close any modal dialog that may have appeared after customer group change
+            // D365 shows confirmation modal: "If you change the customer group value, the default..."
+            this.log(`🔍 Checking for blocking modal after customer group change...`);
+            await this.closeBlockingModal();
           } else {
             this.log(`❌ Customer group input field not found`);
             throw new Error('Customer group input field could not be located');

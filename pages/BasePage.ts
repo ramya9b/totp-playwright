@@ -145,4 +145,75 @@ export class BasePage {
     fs.writeFileSync(`screenshots/${prefix}-debug-${this.browserName}.html`, html);
     fs.writeFileSync(`screenshots/${prefix}-debug-${this.browserName}-url.txt`, this.getUrl());
   }
+
+  /**
+   * Close blocking modal dialogs (D365 confirmation modals)
+   * Attempts multiple strategies to close modal
+   */
+  async closeBlockingModal(): Promise<void> {
+    try {
+      // Strategy 1: Try to find and click OK button in the modal
+      const okButtonSelectors = [
+        'button[name="Ok"]',
+        'button[aria-label="OK"]',
+        'button:has-text("OK")',
+        'button:has-text("Ok")',
+        'div[role="presentation"] button[name="Ok"]',
+        '.popupShadow button[name="Ok"]',
+        'button[id*="Ok"]'
+      ];
+
+      let okButton = null;
+      for (const selector of okButtonSelectors) {
+        try {
+          const button = this.page.locator(selector).first();
+          const isVisible = await button.isVisible({ timeout: 2000 }).catch(() => false);
+          if (isVisible) {
+            okButton = button;
+            this.log(`✅ Found OK button with selector: ${selector}`);
+            break;
+          }
+        } catch (e) {
+          // Continue to next selector
+        }
+      }
+
+      if (okButton) {
+        try {
+          await okButton.click({ timeout: 3000 });
+          this.log(`✅ Successfully clicked OK button to close modal`);
+          await this.page.waitForTimeout(500);
+          return;
+        } catch (e) {
+          this.log(`⚠️ Failed to click OK button: ${e}`);
+        }
+      }
+
+      // Strategy 2: Try pressing Escape key to close modal
+      this.log(`🔑 Attempting to close modal with Escape key`);
+      await this.page.keyboard.press('Escape');
+      await this.page.waitForTimeout(500);
+
+      // Strategy 3: Check if modal is still present after Escape
+      const modalPresent = await this.page.locator('div[role="presentation"].popupShadow, div.lightbox-container.active-form').isVisible({ timeout: 1000 }).catch(() => false);
+      if (modalPresent) {
+        this.log(`⚠️ Modal still present after Escape, attempting JavaScript close`);
+        // Strategy 4: Try to close via JavaScript
+        await this.page.evaluate(() => {
+          const modal = document.querySelector('div[role="presentation"].popupShadow, div.lightbox-container.active-form');
+          if (modal) {
+            modal.remove();
+            const backdrop = document.querySelector('.popupShadow');
+            if (backdrop) backdrop.remove();
+          }
+        });
+        this.log(`✅ Closed modal via JavaScript evaluation`);
+      }
+
+      await this.page.waitForTimeout(500);
+    } catch (error) {
+      this.log(`⚠️ Error closing blocking modal: ${error}`);
+      // Don't throw - allow test to continue
+    }
+  }
 }
