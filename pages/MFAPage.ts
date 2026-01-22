@@ -620,15 +620,29 @@ export class MFAPage extends BasePage {
     await this.page.screenshot({ path: 'screenshots/before-totp-entry.png', fullPage: true });
     this.log('📸 Screenshot: before-totp-entry.png');
     
-    // Create TOTP instance
-    const totp = new OTPAuth.TOTP({
-      issuer: 'Microsoft',
-      label: this.username,
-      algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
-      secret: this.totpSecret,
-    });
+    // Validate TOTP secret
+    if (!this.totpSecret || this.totpSecret.trim().length === 0) {
+      throw new Error('TOTP secret is missing or empty. Check TOTP_SECRET environment variable.');
+    }
+    
+    this.log(`🔐 TOTP Secret length: ${this.totpSecret.length}`);
+    
+    // Create TOTP instance with properly decoded Base32 secret
+    let totp: OTPAuth.TOTP;
+    try {
+      totp = new OTPAuth.TOTP({
+        issuer: 'Microsoft',
+        label: this.username,
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: OTPAuth.Secret.fromBase32(this.totpSecret),
+      });
+      this.log('✅ TOTP instance created successfully');
+    } catch (error) {
+      this.log(`❌ Failed to create TOTP instance: ${error}`);
+      throw new Error(`TOTP initialization failed: ${error}. Ensure TOTP_SECRET is valid Base32 encoded string.`);
+    }
     
     // Clear any existing value first
     this.log('🧹 Clearing TOTP field...');
