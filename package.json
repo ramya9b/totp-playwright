@@ -34,7 +34,8 @@
     "allure-playwright": "^3.4.3",
     "dotenv": "^17.2.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "xlsx": "^0.18.5"
   },
   "dependencies": {
     "otpauth": "^9.4.1"

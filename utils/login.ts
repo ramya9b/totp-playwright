@@ -1,10 +1,16 @@
 import { Page } from '@playwright/test';
 import * as OTPAuth from 'otpauth';
 import dotenv from 'dotenv';
+
+// Load environment variables (support .env and optional credentials.env for backward compatibility)
+dotenv.config();
 dotenv.config({ path: 'credentials.env' });
 
 export async function loginToDynamics365(page: Page, saveSession = true) {
-  const { DM365_PAGE_URL, M365_USERNAME, M365_PASSWORD, M365_OTP_SECRET } = process.env;
+  // Support both old and current env var names for flexibility
+  const DM365_PAGE_URL = process.env.DM365_PAGE_URL || process.env.D365_URL;
+  const M365_OTP_SECRET = process.env.M365_OTP_SECRET || process.env.TOTP_SECRET;
+  const { M365_USERNAME, M365_PASSWORD } = process.env;
 
   if (!DM365_PAGE_URL || !M365_USERNAME || !M365_PASSWORD || !M365_OTP_SECRET) {
     throw new Error('Missing required environment variables');

@@ -1,0 +1,403 @@
+# Jenkins Declarative Pipeline for Scheduled Test Execution
+# This file provides an alternative/enhanced Jenkins configuration for daily/weekly test execution
+
+pipeline {
+    agent any
+    
+    parameters {
+        choice(
+            name: 'SCHEDULE_TYPE',
+            choices: ['daily', 'weekly', 'on-demand'],
+            description: 'Type of test execution'
+        )
+        choice(
+            name: 'TEST_SUITE',
+            choices: ['all', 'smoke', 'regression', 'creation'],
+            description: 'Which tests to run'
+        )
+    }
+    
+    // Scheduled triggers - Replace with your preferred times
+    triggers {
+        // Daily execution - 2:00 AM UTC (adjust to your timezone)
+        // 0 2 * * * = 2:00 AM every day
+        cron('0 2 * * *') {
+            displayName("Daily Test Execution - 2:00 AM UTC")
+        }
+        
+        // Weekly execution - Monday 10:00 AM UTC
+        // 0 10 * * 1 = 10:00 AM every Monday
+        cron('0 10 * * 1') {
+            displayName("Weekly Test Execution - Monday 10:00 AM UTC")
+        }
+        
+        // Poll SCM every 15 minutes for code changes
+        pollSCM('H/15 * * * *') {
+            displayName("Poll SCM every 15 minutes")
+        }
+    }
+    
+    environment {
+        NODE_VERSION = '20'
+        JAVA_HOME = tool name: 'JDK11', type: 'jdk'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}:${env.NPM_BIN}"
+        CI = 'true'
+        PLAYWRIGHT_HEADLESS = 'true'
+        ALLURE_RESULTS_DIR = 'allure-results'
+        ALLURE_REPORT_DIR = 'allure-report'
+        BUILD_TIMESTAMP = "${env.BUILD_NUMBER}_${new Date().format('yyyy-MM-dd_HH-mm-ss')}"
+    }
+    
+    options {
+        // Keep last 10 builds, delete builds older than 30 days
+        buildDiscarder(logRotator(numToKeepStr: '10', daysToKeepStr: '30'))
+        
+        // Set maximum build duration
+        timeout(time: 60, unit: 'MINUTES')
+        
+        // Don't allow concurrent builds
+        disableConcurrentBuilds()
+        
+        // Prevent builds after unstable state
+        skipStagesAfterUnstable()
+        
+        // Add timestamps to console logs
+        timestamps()
+    }
+    
+    stages {
+        stage('📥 Checkout & Setup') {
+            steps {
+                echo '✅ Checking out repository...'
+                checkout scm
+                
+                script {
+                    env.GIT_COMMIT_MSG = sh(
+                        script: "git log -1 --pretty=%B",
+                        returnStdout: true
+                    ).trim()
+                    echo "📝 Latest commit: ${env.GIT_COMMIT_MSG}"
+                }
+                
+                echo '⚙️ Setting up Node.js environment...'
+                sh '''
+                    echo "Node version:"
+                    node --version
+                    echo "NPM version:"
+                    npm --version
+                '''
+            }
+        }
+        
+        stage('📦 Install Dependencies') {
+            steps {
+                echo '📦 Installing project dependencies...'
+                sh '''
+                    npm ci
+                    echo "✅ Dependencies installed"
+                '''
+            }
+        }
+        
+        stage('🎭 Install Playwright') {
+            steps {
+                echo '🎭 Installing Playwright browsers...'
+                sh '''
+                    npx playwright install --with-deps
+                    echo "✅ Playwright browsers installed"
+                '''
+            }
+        }
+        
+        stage('🔐 Setup Authentication') {
+            steps {
+                echo '🔐 Configuring authentication...'
+                withCredentials([
+                    file(credentialsId: 'd365-auth-file', variable: 'D365_AUTH_FILE'),
+                    string(credentialsId: 'playwright-service-token', variable: 'PLAYWRIGHT_SERVICE_ACCESS_TOKEN'),
+                    string(credentialsId: 'd365-url', variable: 'D365_URL')
+                ]) {
+                    sh '''
+                        # Create auth directory
+                        mkdir -p auth
+                        
+                        # Copy authentication file
+                        cp "${D365_AUTH_FILE}" auth/D365AuthFile.json
+                        
+                        # Verify authentication file
+                        if [ -f auth/D365AuthFile.json ]; then
+                            echo "✅ D365 Authentication file ready"
+                        else
+                            echo "❌ Failed to setup authentication file"
+                            exit 1
+                        fi
+                    '''
+                }
+            }
+        }
+        
+        stage('🧪 Run Playwright Tests') {
+            steps {
+                echo '🧪 Executing Playwright tests...'
+                sh '''
+                    echo "📊 Test Configuration:"
+                    echo "  - Headless: ${PLAYWRIGHT_HEADLESS}"
+                    echo "  - CI Mode: ${CI}"
+                    echo "  - Workers: 1"
+                    echo ""
+                    
+                    # Run tests and capture exit code
+                    npx playwright test \
+                        -c playwright.service.config.ts \
+                        --workers=1 \
+                        --reporter=json \
+                        --reporter=html \
+                        --reporter=junit
+                    
+                    TEST_EXIT_CODE=$?
+                    
+                    if [ $TEST_EXIT_CODE -eq 0 ]; then
+                        echo "✅ All tests passed!"
+                    else
+                        echo "⚠️ Some tests failed (Exit code: $TEST_EXIT_CODE)"
+                    fi
+                    
+                    exit $TEST_EXIT_CODE
+                '''
+            }
+        }
+        
+        stage('📊 Generate Allure Report') {
+            when {
+                always()
+            }
+            steps {
+                echo '📊 Generating Allure report...'
+                sh '''
+                    npm install -g allure-commandline
+                    allure generate allure-results --clean -o allure-report || true
+                    echo "✅ Allure report generated"
+                '''
+            }
+        }
+        
+        stage('📈 Publish Results') {
+            when {
+                always()
+            }
+            steps {
+                echo '📈 Publishing test results...'
+                
+                // Publish JUnit test results
+                junit testResults: '**/test-results/*.xml', 
+                      allowEmptyResults: true,
+                      skipPublishingChecks: false
+                
+                // Publish HTML report
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'playwright-report',
+                    reportFiles: 'index.html',
+                    reportName: 'Playwright Test Report'
+                ])
+                
+                // Publish Allure Report
+                publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'allure-report',
+                    reportFiles: 'index.html',
+                    reportName: 'Allure Test Report'
+                ])
+                
+                echo "✅ Test results published"
+            }
+        }
+        
+        stage('📸 Archive Artifacts') {
+            when {
+                always()
+            }
+            steps {
+                echo '📸 Archiving test artifacts...'
+                
+                // Archive test results
+                archiveArtifacts artifacts: '**/test-results/**',
+                                 allowEmptyArchive: true
+                
+                // Archive Playwright report
+                archiveArtifacts artifacts: 'playwright-report/**',
+                                 allowEmptyArchive: true
+                
+                // Archive Allure results
+                archiveArtifacts artifacts: 'allure-results/**',
+                                 allowEmptyArchive: true
+                
+                // Archive screenshots (if tests failed)
+                archiveArtifacts artifacts: 'test-results/**/test-*.png',
+                                 allowEmptyArchive: true
+                
+                echo "✅ Artifacts archived"
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo '🧹 Cleanup...'
+            // Clean up large files if needed
+            sh '''
+                echo "📊 Test execution summary:"
+                echo "  Build Number: ${BUILD_NUMBER}"
+                echo "  Timestamp: ${BUILD_TIMESTAMP}"
+                if [ -d playwright-report ]; then
+                    echo "  ✅ Playwright report generated"
+                fi
+                if [ -d allure-report ]; then
+                    echo "  ✅ Allure report generated"
+                fi
+            '''
+        }
+        
+        success {
+            echo '✅ Pipeline execution successful!'
+            
+            // Optional: Send success notification
+            // emailext(
+            //     subject: "✅ Test Pipeline Successful - Build #${BUILD_NUMBER}",
+            //     body: "All tests passed successfully.\n\nBuild: ${BUILD_URL}",
+            //     to: '${DEFAULT_RECIPIENTS}',
+            //     recipientProviders: [
+            //         developers(),
+            //         requestor(),
+            //         brokenBuildSuspects()
+            //     ]
+            // )
+        }
+        
+        unstable {
+            echo '⚠️ Pipeline unstable - Some tests may have failed'
+            
+            // Optional: Send warning notification
+            // emailext(
+            //     subject: "⚠️ Test Pipeline Unstable - Build #${BUILD_NUMBER}",
+            //     body: "Some tests failed.\n\nBuild: ${BUILD_URL}\n\nCheck Playwright Report for details.",
+            //     to: '${DEFAULT_RECIPIENTS}',
+            //     recipientProviders: [
+            //         developers(),
+            //         requestor(),
+            //         brokenBuildSuspects()
+            //     ]
+            // )
+        }
+        
+        failure {
+            echo '❌ Pipeline execution failed!'
+            
+            // Optional: Send failure notification
+            // emailext(
+            //     subject: "❌ Test Pipeline Failed - Build #${BUILD_NUMBER}",
+            //     body: "Tests failed.\n\nBuild: ${BUILD_URL}\n\nCheck logs and artifacts for more information.",
+            //     to: '${DEFAULT_RECIPIENTS}',
+            //     recipientProviders: [
+            //         developers(),
+            //         requestor(),
+            //         brokenBuildSuspects()
+            //     ]
+            // )
+        }
+    }
+}
+
+/* =============================================
+   JENKINS CONFIGURATION INSTRUCTIONS
+   ============================================= */
+
+/*
+## Setup Instructions for Jenkins
+
+### 1. Install Required Plugins
+In Jenkins, go to:
+- Manage Jenkins → Plugin Manager
+- Search and install:
+  - Pipeline (if not installed)
+  - Node.js Plugin
+  - Email Extension Plugin (optional, for notifications)
+  - HTML Publisher Plugin
+  - JUnit plugin
+  - Git plugin
+
+### 2. Create a New Jenkins Job
+1. Click "New Item"
+2. Enter job name: "Playwright-Scheduled-Tests"
+3. Select "Pipeline" as job type
+4. Click "OK"
+
+### 3. Configure Pipeline Script
+1. In Pipeline section, select "Pipeline script from SCM"
+2. Choose "Git" as SCM
+3. Enter repository URL
+4. Set script path to "Jenkinsfile" or "Jenkinsfile-Scheduled"
+5. Click "Save"
+
+### 4. Configure Build Triggers
+1. Check "Build periodically" for regular execution
+2. Enter cron schedule in the text field:
+   - Daily at 2 AM: "0 2 * * *"
+   - Weekly Monday 10 AM: "0 10 * * 1"
+3. Check "Poll SCM" if you want to detect code changes
+4. Set polling interval (e.g., "H/15 * * * *" for every 15 minutes)
+
+### 5. Configure Credentials
+1. Jenkins home → Credentials → System → Global credentials
+2. Add credentials for:
+   - D365AuthFile (file credential)
+   - PLAYWRIGHT_SERVICE_ACCESS_TOKEN (secret text)
+   - D365_URL (secret text)
+
+### 6. Timezone Configuration
+Jenkins uses system timezone for cron jobs.
+To change:
+1. Manage Jenkins → Configure System
+2. Set "System Time Zone" to your preferred timezone
+3. Click "Save"
+
+### 7. Test First Run
+1. Click "Build Now" to test manual execution
+2. Monitor build logs for errors
+3. Once successful, scheduled runs will start automatically
+
+### 8. Monitor Scheduled Runs
+1. Dashboard shows build history
+2. Click on build number to view details
+3. Check "Playwright Test Report" tab for test results
+4. Check "Allure Test Report" tab for detailed analytics
+
+### Common Cron Expressions
+- Daily at 2 AM: "0 2 * * *"
+- Daily at 9 AM: "0 9 * * *"
+- Every Monday at 10 AM: "0 10 * * 1"
+- Every weekday (Mon-Fri) at 9 AM: "0 9 * * 1-5"
+- Every 6 hours: "0 0,6,12,18 * * *"
+- 1st and 15th of month at 8 AM: "0 8 1,15 * *"
+
+### Troubleshooting
+1. Scheduled job not running?
+   - Check Jenkins is running
+   - Verify system time is correct
+   - Check "Configure System" for timezone
+   - Review Jenkins logs
+
+2. Authentication failures?
+   - Verify credentials are stored correctly in Jenkins
+   - Check credential IDs match in Jenkinsfile
+   - Ensure D365AuthFile hasn't expired
+
+3. Test failures?
+   - Review "Playwright Test Report"
+   - Check "Allure Test Report" for detailed failure info
+   - Review build logs in Jenkins console
+*/

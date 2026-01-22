@@ -38,7 +38,7 @@ async function globalSetup(config: FullConfig) {
     headless: isHeadless,
     args: [
       '--disable-blink-features=AutomationControlled',
-      '--disable-features=WebAuthenticationUI',
+      '--disable-features=WebAuthenticationUI,WebAuthentication',
       '--disable-web-security',
       '--no-first-run',
       '--no-service-autorun',
@@ -46,7 +46,15 @@ async function globalSetup(config: FullConfig) {
       '--disable-dev-shm-usage',
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--disable-gpu'
+      '--disable-gpu',
+      '--disable-sync',
+      '--disable-translate',
+      '--disable-default-apps',
+      '--disable-extensions',
+      '--disable-plugins',
+      '--disable-preconnect',
+      '--disable-component-extensions-with-background-pages',
+      '--disable-popup-blocking'
     ]
   });
 
@@ -61,7 +69,7 @@ async function globalSetup(config: FullConfig) {
       timezoneId: 'America/New_York'
     });
     
-    // Remove automation indicators
+    // Remove automation indicators and disable WebAuthn
     await context.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', {
         get: () => undefined,
@@ -74,6 +82,17 @@ async function globalSetup(config: FullConfig) {
       Object.defineProperty(navigator, 'languages', {
         get: () => ['en-US', 'en'],
       });
+      
+      // Disable WebAuthn/FIDO to force password-based authentication
+      if (window.PublicKeyCredential) {
+        delete (window as any).PublicKeyCredential;
+      }
+      
+      // Disable credential management API
+      if (navigator.credentials) {
+        (navigator.credentials as any).get = async () => null;
+        (navigator.credentials as any).store = async () => {};
+      }
       
       delete (window as any).cdc_adoQpoasnfa76pfcZLmcfl_Array;
       delete (window as any).cdc_adoQpoasnfa76pfcZLmcfl_Promise;

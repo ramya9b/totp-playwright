@@ -26,10 +26,12 @@ export class LoginPage extends BasePage {
   async navigateToLogin(url: string): Promise<void> {
     this.log('🚀 Navigating to D365 login page...');
     
-    // Add prompt=login to force fresh authentication and amr_values=mfa to require MFA
+    // DO NOT use amr_values=mfa as it triggers FIDO/Windows Hello
+    // Instead, use prompt=login to force fresh authentication
+    // MFA will be enforced by the application configuration
     const separator = url.includes('?') ? '&' : '?';
-    const loginUrl = `${url}${separator}prompt=login&amr_values=mfa`;
-    this.log(`🔧 Using URL with prompt=login and MFA requirement: ${loginUrl}`);
+    const loginUrl = `${url}${separator}prompt=login`;
+    this.log(`🔧 Using URL with prompt=login (FIDO-safe): ${loginUrl}`);
     
     await this.navigateTo(loginUrl);
   }

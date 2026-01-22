@@ -4,6 +4,7 @@ export { LoginPage } from './LoginPage';
 export { MFAPage } from './MFAPage';
 export { HomePage } from './HomePage';
 export { AuthenticationManager } from './AuthenticationManager';
+export { CreateCustomerPage } from './CreateCustomer';
 
 // Type definitions for page objects
 export interface AuthenticationResult {

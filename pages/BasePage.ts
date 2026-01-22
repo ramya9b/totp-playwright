@@ -17,7 +17,18 @@ export class BasePage {
    * Navigate to a specific URL
    */
   async navigateTo(url: string): Promise<void> {
-    await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    try {
+      await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    } catch (err: any) {
+      // Ignore navigation interruption caused by immediate redirect to account provider
+      const msg = (err && err.message) ? err.message as string : '';
+      if (msg.includes('interrupted by another navigation') || msg.includes('Navigation cancelled')) {
+        this.log(`⚠️ Navigation was interrupted by a redirect (expected for auth flows): ${msg}`);
+        return;
+      }
+      // Re-throw unexpected errors
+      throw err;
+    }
   }
 
   /**
@@ -31,7 +42,14 @@ export class BasePage {
    * Wait for page to load
    */
   async waitForPageLoad(): Promise<void> {
-    await this.page.waitForLoadState('networkidle');
+    try {
+      await this.page.waitForLoadState('networkidle', { timeout: 15000 });
+    } catch (e) {
+      // D365 often doesn't reach true 'networkidle' due to background activity
+      // Fallback to checking DOM is ready
+      this.log('⚠️ networkidle timeout, falling back to domcontentloaded');
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+    }
   }
 
   /**

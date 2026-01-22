@@ -192,19 +192,38 @@ export class AuthenticationManager {
       // Step 7: Handle stay signed in prompt
       await this.loginPage.handleStaySignedInPrompt();
       
-      // Step 8: Wait for successful login
-      await this.loginPage.waitForLoginSuccess(this.d365Url);
-      
+      // Step 8: Wait for successful login, but handle cases where the login flow closes the current page
+      try {
+        await this.loginPage.waitForLoginSuccess(this.d365Url);
+      } catch (err) {
+        // Sometimes auth redirects open a new tab/window (and close the auth page). Attempt to find and attach to that new page.
+        this.loginPage.log('⚠️ waitForLoginSuccess failed - checking for D365 opened in a new page...');
+        const dynPage = await this.findDynamicsPage(20000);
+        if (dynPage) {
+          this.loginPage.log('✅ Found D365 page opened in separate tab; adopting it for the session');
+          await this.adoptPage(dynPage);
+        } else {
+          // Re-throw original error if we couldn't recover
+          throw err;
+        }
+      }
+
       // Step 9: Verify homepage is loaded FIRST
       await this.homePage.verifyHomepageLoaded();
       
       // Step 10: Wait for network to be completely idle (all cookies/tokens set)
-      this.loginPage.log('⏳ Waiting for network to be idle (all background requests complete)...');
-      await this.page.waitForLoadState('networkidle', { timeout: 30000 });
+      this.loginPage.log('⏳ Waiting for network to settle...');
+      try {
+        await this.page.waitForLoadState('networkidle', { timeout: 15000 });
+      } catch (e) {
+        // D365 may not reach full networkidle, but if homepage is verified, proceed
+        this.loginPage.log('⚠️ Network idle timeout, but homepage is verified - proceeding...');
+        await this.page.waitForTimeout(2000);
+      }
       
       // Step 11: Additional buffer to ensure D365 session is fully initialized
-      this.loginPage.log('⏳ Additional 3-second buffer for session stability...');
-      await this.page.waitForTimeout(3000);
+      this.loginPage.log('⏳ Additional 2-second buffer for session stability...');
+      await this.page.waitForTimeout(2000);
       
       // Step 12: Log cookies for debugging
       const cookies = await this.page.context().cookies();
@@ -263,6 +282,65 @@ export class AuthenticationManager {
     } catch (error) {
       console.error('❌ Session login failed:', error);
       return false;
+    }
+  }
+
+  /**
+   * Attempt to locate a D365 page if the login flow opened a new tab/window
+   * Returns the Page if found, or null if not.
+   */
+  private async findDynamicsPage(timeout: number = 10000): Promise<any | null> {
+    // Check existing pages first
+    const pages = this.context.pages();
+    for (const p of pages) {
+      try {
+        const url = p.url();
+        if (url && (url.includes('dynamics.com') || url.includes('operations.dynamics') || url.includes('sandbox.operations') || url.includes('businesscentral.dynamics.com'))) {
+          return p;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // Listen for a new page event within timeout
+    try {
+      const newPage = await this.context.waitForEvent('page', { timeout });
+      try {
+        // Wait a bit for the new page to navigate
+        await newPage.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
+        const newUrl = newPage.url();
+        if (newUrl && (newUrl.includes('dynamics.com') || newUrl.includes('operations.dynamics') || newUrl.includes('sandbox.operations') || newUrl.includes('businesscentral.dynamics.com'))) {
+          return newPage;
+        }
+
+        // Wait for redirect to dynamics for a short period
+        await newPage.waitForURL(url => url.toString().includes('dynamics.com') || url.toString().includes('operations.dynamics') || url.toString().includes('sandbox.operations') || url.toString().includes('businesscentral.dynamics.com'), { timeout: 20000 }).catch(() => {});
+        return newPage;
+      } catch {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Adopt a newly-opened D365 page so existing page objects point to it
+   */
+  private async adoptPage(newPage: any): Promise<void> {
+    // Replace the page references used across page objects
+    this.page = newPage;
+    this.context = newPage.context();
+    this.loginPage = new LoginPage(newPage);
+    this.mfaPage = new MFAPage(newPage, this.totpSecret, this.username);
+    this.homePage = new HomePage(newPage);
+
+    // Give the new page a moment to stabilize
+    try {
+      await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    } catch {
+      // ignore
     }
   }
 

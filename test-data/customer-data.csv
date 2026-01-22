@@ -1,0 +1,6 @@
+﻿First Name,Last Name Prefix,Last Name,Customer Group,Delivery Terms,Delivery Mode,ZIP Code
+Test 0001,Test 0002,Test Last Name 0003,10,CFR,Truck,67001
+Alice,Van,Johnson,20,FOB,Air,90210
+Bob,De,Smith,30,CIF,Ship,50001
+Carol,La,Williams,10,DDP,Truck,60601
+David,Von,Brown,15,Incoterm,Rail,75001

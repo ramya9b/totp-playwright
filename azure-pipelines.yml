@@ -1,5 +1,24 @@
+# CI Trigger - when code is pushed
 trigger:
   - main
+
+# Scheduled triggers for daily and weekly execution
+schedules:
+  # Daily schedule - runs every day at 2:00 AM UTC (adjust to your timezone)
+  - cron: "0 2 * * *"
+    displayName: "Daily Test Execution at 2:00 AM UTC"
+    branches:
+      include:
+        - main
+    always: true  # Always run even if no changes
+
+  # Weekly schedule - runs every Monday at 10:00 AM UTC
+  - cron: "0 10 * * 1"
+    displayName: "Weekly Test Execution - Monday 10:00 AM UTC"
+    branches:
+      include:
+        - main
+    always: true  # Always run even if no changes
 
 pool:
   vmImage: 'windows-latest'
