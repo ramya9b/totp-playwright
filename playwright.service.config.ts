@@ -15,6 +15,29 @@ export default defineConfig({
     screenshot: 'on',
     video: 'on',
   },
+  /* Inherit reporters from main config (Allure, HTML, JSON, JUnit) */
+  reporter: [
+    ['html', { 
+      outputFolder: 'playwright-report', 
+      open: 'never',
+      showTrace: true
+    }],
+    ['allure-playwright', {
+      outputFolder: 'allure-results',
+      suiteTitle: true,
+      detail: true,
+      environmentInfo: {
+        'Test Environment': 'D365 Finance & Operations',
+        'Authentication': 'TOTP Multi-Factor',
+        'Browser': 'Chromium',
+        'Test Framework': 'Playwright',
+        'Execution': 'Microsoft Playwright Testing Service'
+      }
+    }],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['junit', { outputFile: 'test-results/results.xml' }],
+    ['line'],
+  ],
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
   ],
