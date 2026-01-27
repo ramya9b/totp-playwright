@@ -676,46 +676,59 @@ export class CreateCustomerPage extends BasePage {
   async clickSave(): Promise<void> {
     this.log('💾 Clicking Save...');
     
-    // Wait for save button to be available
+    // Wait for form to be ready
     await this.page.waitForTimeout(1000);
     
-    // Look for OKButton (Save button in D365) - this is the primary way to save in quick create forms
+    // Look for OKButton (Save button in D365)
     const okButtonLocator = this.page.locator('button[id*="OKButton"], button[name="OKButton"]');
     const okButtonCount = await okButtonLocator.count();
     this.log(`📊 Found ${okButtonCount} OKButton elements`);
     
+    // Try Alt+Enter keyboard shortcut (D365 native shortcut for this button)
+    this.log('🔑 Trying Alt+Enter keyboard shortcut...');
+    try {
+      await this.page.keyboard.down('Alt');
+      await this.page.keyboard.press('Enter');
+      await this.page.keyboard.up('Alt');
+      
+      await this.page.waitForTimeout(3000);
+      this.log('✅ Alt+Enter submitted - Save likely clicked');
+      return;
+    } catch (e) {
+      this.log(`⚠️ Alt+Enter failed: ${e.message}`);
+    }
+    
+    // Fallback: Direct button click
     if (okButtonCount > 0) {
       try {
         const okButton = okButtonLocator.first();
-        this.log('⏳ Waiting for OKButton to be visible...');
-        await okButton.waitFor({ state: 'visible', timeout: 8000 });
+        this.log('⏳ Waiting for OKButton to be clickable...');
+        await okButton.waitFor({ state: 'visible', timeout: 5000 });
         
-        this.log('🖱️ Clicking OKButton...');
+        this.log('🖱️ Clicking OKButton directly...');
         await okButton.click({ force: true, timeout: 5000 });
-        this.log('✅ Save button (OKButton) clicked successfully');
+        this.log('✅ OKButton clicked');
         
-        // Wait for save to complete
         await this.page.waitForTimeout(3000);
         this.log('✅ Save completed');
         return;
       } catch (e) {
-        this.log(`⚠️ OKButton click failed: ${e.message}`);
+        this.log(`⚠️ Direct click failed: ${e.message}`);
       }
     }
 
-    // Fallback: Try pressing Ctrl+S
-    this.log('🔧 Trying keyboard shortcut Ctrl+S as fallback...');
+    // Final fallback: Ctrl+S
+    this.log('🔧 Trying Ctrl+S as final fallback...');
     try {
       await this.page.keyboard.down('Control');
       await this.page.keyboard.press('s');
       await this.page.keyboard.up('Control');
       
-      // Give D365 time to process the save
       await this.page.waitForTimeout(3000);
       this.log('✅ Ctrl+S submitted');
       return;
     } catch (e) {
-      this.log(`⚠️ Ctrl+S failed: ${e}`);
+      this.log(`⚠️ All save methods failed: ${e}`);
     }
 
     // Check if we're still on a form or if save already worked
