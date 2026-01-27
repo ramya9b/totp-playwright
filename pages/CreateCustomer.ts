@@ -375,7 +375,7 @@ export class CreateCustomerPage extends BasePage {
         }
       }
 
-      // Fill Last name prefix
+      // Fill Last name prefix with better fallback selectors
       if (data.lastNamePrefix) {
         this.log(`✍️ Filling last name prefix: ${data.lastNamePrefix}`);
         try {
@@ -385,7 +385,36 @@ export class CreateCustomerPage extends BasePage {
           await this.lastNamePrefixInput.press('Tab');
           this.log(`✅ Last name prefix filled successfully`);
         } catch (error) {
-          this.log(`⚠️ Last name prefix not found or error: ${error}`);
+          this.log(`⚠️ Last name prefix not found with primary selector, trying alternatives...`);
+          
+          // Try alternative selectors for last name prefix
+          const alternativeSelectors = [
+            'input[id*="LastNamePrefix"], input[id*="NamePrefix"], input[name*="LastNamePrefix"]',
+            'input[aria-label*="Prefix" i], input[placeholder*="Prefix" i]',
+            'input[role="combobox"][id*="Prefix"]'
+          ];
+          
+          let found = false;
+          for (const selector of alternativeSelectors) {
+            try {
+              const element = this.page.locator(selector).first();
+              const isVisible = await element.isVisible({ timeout: 2000 }).catch(() => false);
+              if (isVisible) {
+                this.log(`   Found last name prefix with selector: ${selector}`);
+                await element.fill(data.lastNamePrefix);
+                await element.press('Tab');
+                this.log(`✅ Last name prefix filled via alternative selector`);
+                found = true;
+                break;
+              }
+            } catch (e) {
+              // Continue to next selector
+            }
+          }
+          
+          if (!found) {
+            this.log(`   ⚠️ Last name prefix field not found - skipping`);
+          }
         }
       }
 
@@ -532,64 +561,163 @@ export class CreateCustomerPage extends BasePage {
         }
       }
 
-      // Select Delivery Terms
+      // Select Delivery Terms with retry logic
       if (data.deliveryTerms) {
         this.log(`🔍 Selecting delivery terms: ${data.deliveryTerms}`);
-        try {
-          await this.deliveryTermsButton.click({ timeout: 5000 });
-          await this.page.waitForLoadState('networkidle');
-          
-          const deliveryTermsCell = this.page.getByRole('gridcell', { name: data.deliveryTerms });
-          if ((await deliveryTermsCell.count()) > 0) {
-            await deliveryTermsCell.getByLabel('Delivery terms').click();
+        let deliveryTermsClicked = false;
+        
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            this.log(`   Attempt ${attempt}/3: Scrolling lookup button into view...`);
+            await this.deliveryTermsButton.scrollIntoViewIfNeeded();
             await this.page.waitForTimeout(500);
+            
+            this.log(`   Attempting to click delivery terms button...`);
+            await this.deliveryTermsButton.click({ force: true, timeout: 3000 });
+            this.log(`✅ Delivery terms button clicked on attempt ${attempt}`);
+            deliveryTermsClicked = true;
+            
+            // Wait for lookup modal to open
+            await this.page.waitForTimeout(1000);
+            await this.page.waitForLoadState('networkidle');
+            
+            // Look for the delivery terms value in grid
+            const deliveryTermsCell = this.page.getByRole('gridcell', { name: data.deliveryTerms });
+            const cellCount = await deliveryTermsCell.count();
+            
+            if (cellCount > 0) {
+              this.log(`   Found delivery terms cell, clicking it...`);
+              await deliveryTermsCell.first().click({ timeout: 3000 });
+              this.log(`✅ Delivery terms selected: ${data.deliveryTerms}`);
+              await this.page.waitForTimeout(500);
+            } else {
+              this.log(`   ⚠️ Delivery terms value not found in grid, trying row selector...`);
+              // Try alternative selector
+              const termRow = this.page.locator(`row:has-text("${data.deliveryTerms}")`).first();
+              if (await termRow.count() > 0) {
+                await termRow.click();
+                this.log(`✅ Delivery terms selected via row selector`);
+              } else {
+                this.log(`   ⚠️ Could not find delivery terms in grid`);
+              }
+            }
+            break;
+          } catch (error) {
+            this.log(`   ⚠️ Attempt ${attempt} failed: ${error.message}`);
+            if (attempt < 3) {
+              await this.page.waitForTimeout(500);
+            }
           }
-        } catch (error) {
-          this.log(`⚠️ Delivery terms selection error: ${error}`);
+        }
+        
+        if (!deliveryTermsClicked) {
+          this.log(`⚠️ Failed to click delivery terms button after 3 attempts`);
         }
       }
 
-      // Select Mode of Delivery
+      // Select Mode of Delivery with retry logic
       if (data.deliveryMode) {
         this.log(`🔍 Selecting delivery mode: ${data.deliveryMode}`);
-        try {
-          await this.deliveryModeButton.click({ timeout: 5000 });
-          await this.page.waitForLoadState('networkidle');
-          
-          const deliveryModeRow = this.page.getByRole('row', { name: data.deliveryMode });
-          if ((await deliveryModeRow.count()) > 0) {
-            await deliveryModeRow.getByLabel('Mode of delivery').click();
+        let deliveryModeClicked = false;
+        
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            this.log(`   Attempt ${attempt}/3: Scrolling lookup button into view...`);
+            await this.deliveryModeButton.scrollIntoViewIfNeeded();
             await this.page.waitForTimeout(500);
+            
+            this.log(`   Attempting to click delivery mode button...`);
+            await this.deliveryModeButton.click({ force: true, timeout: 3000 });
+            this.log(`✅ Delivery mode button clicked on attempt ${attempt}`);
+            deliveryModeClicked = true;
+            
+            // Wait for lookup modal to open
+            await this.page.waitForTimeout(1000);
+            await this.page.waitForLoadState('networkidle');
+            
+            // Look for the delivery mode value in grid
+            const deliveryModeRow = this.page.getByRole('row', { name: data.deliveryMode });
+            const rowCount = await deliveryModeRow.count();
+            
+            if (rowCount > 0) {
+              this.log(`   Found delivery mode row, clicking it...`);
+              await deliveryModeRow.first().click({ timeout: 3000 });
+              this.log(`✅ Delivery mode selected: ${data.deliveryMode}`);
+              await this.page.waitForTimeout(500);
+            } else {
+              this.log(`   ⚠️ Delivery mode value not found in grid, trying text selector...`);
+              // Try finding by text content
+              const modeCell = this.page.locator(`text="${data.deliveryMode}"`).first();
+              if (await modeCell.count() > 0) {
+                await modeCell.click();
+                this.log(`✅ Delivery mode selected via text selector`);
+              } else {
+                this.log(`   ⚠️ Could not find delivery mode in grid`);
+              }
+            }
+            break;
+          } catch (error) {
+            this.log(`   ⚠️ Attempt ${attempt} failed: ${error.message}`);
+            if (attempt < 3) {
+              await this.page.waitForTimeout(500);
+            }
           }
-        } catch (error) {
-          this.log(`⚠️ Delivery mode selection error: ${error}`);
+        }
+        
+        if (!deliveryModeClicked) {
+          this.log(`⚠️ Failed to click delivery mode button after 3 attempts`);
         }
       }
 
-      // Fill ZIP/Postal code
+      // Fill ZIP/Postal code with improved selectors
       if (data.zipCode) {
         this.log(`✍️ Filling ZIP code: ${data.zipCode}`);
         try {
-          await this.zipInput.waitFor({ state: 'visible', timeout: 5000 });
+          // Wait for ZIP input with longer timeout
+          await this.zipInput.waitFor({ state: 'visible', timeout: 8000 });
+          await this.zipInput.scrollIntoViewIfNeeded();
+          await this.page.waitForTimeout(500);
+          
+          // Click and clear
           await this.zipInput.click({ timeout: 5000 });
+          await this.zipInput.clear();
+          
+          // Fill the value
           await this.zipInput.fill(data.zipCode);
+          this.log(`   Filled ZIP code field, waiting for autocomplete...`);
+          await this.page.waitForTimeout(1000);
+          
+          // Press Tab to trigger autocomplete/lookup
           await this.zipInput.press('Tab');
-
-          // Click lookup button to select from suggestions
+          this.log(`✅ ZIP code filled and Tab pressed: ${data.zipCode}`);
+          
+          // Check for lookup modal/dropdown
           const zipCodeLookup = this.page.locator(
-            '#DirPartyQuickCreateForm_4_LogisticsPostalAddress_ZipCode > .lookupDock-buttonContainer > .lookupButton'
+            '#DirPartyQuickCreateForm_4_LogisticsPostalAddress_ZipCode > .lookupDock-buttonContainer > .lookupButton, ' +
+            'button[data-id*="ZipCode"][class*="lookup"], ' +
+            '[id*="ZipCode"] .lookupButton'
           );
-          if ((await zipCodeLookup.count()) > 0) {
-            await zipCodeLookup.click();
-            await this.page.waitForLoadState('networkidle');
-
-            // Select first result
-            const firstResult = this.page
-              .locator('#Grid_6008_0-row-0 > .fixedDataTableRowLayout_body > div > .fixedDataTableCellGroupLayout_cellGroup > .fixedDataTableCellLayout_main > .fixedDataTableCellLayout_wrap1')
-              .first();
-            if ((await firstResult.count()) > 0) {
-              await firstResult.click();
-              await this.page.waitForTimeout(500);
+          
+          const lookupCount = await zipCodeLookup.count();
+          if (lookupCount > 0) {
+            try {
+              this.log(`   Found ZIP code lookup button, clicking...`);
+              await zipCodeLookup.first().click({ timeout: 3000 });
+              await this.page.waitForLoadState('networkidle');
+              this.log(`✅ ZIP code lookup modal opened`);
+              
+              // Try to select first result
+              const firstResult = this.page
+                .locator('#Grid_6008_0-row-0 > .fixedDataTableRowLayout_body > div > .fixedDataTableCellGroupLayout_cellGroup > .fixedDataTableCellLayout_main > .fixedDataTableCellLayout_wrap1')
+                .first();
+              
+              if ((await firstResult.count()) > 0) {
+                await firstResult.click();
+                this.log(`✅ Selected first ZIP code result`);
+                await this.page.waitForTimeout(500);
+              }
+            } catch (e) {
+              this.log(`   ⚠️ ZIP code lookup click/selection error: ${e.message}`);
             }
           }
         } catch (error) {
