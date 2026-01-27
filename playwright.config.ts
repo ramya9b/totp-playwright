@@ -71,7 +71,7 @@ export default defineConfig({
       }
     }],
     ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/results.xml' }],
+    ['junit', { outputFile: 'test-results/junit.xml' }],
     ['line'],
   ],
 
