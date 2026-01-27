@@ -434,190 +434,58 @@ export class CreateCustomerPage extends BasePage {
         }
       }
 
-      // Select Customer Group
+      // Fill Customer Group (simple text input like firstName/lastName)
       if (data.customerGroup) {
-        this.log(`🔍 Selecting customer group: ${data.customerGroup}`);
+        this.log(`✍️ Filling customer group: ${data.customerGroup}`);
         try {
-          // Find the customer group input field - try multiple selector patterns
-          const custGroupSelectors = [
-            'input[role="combobox"][id*="CustGroup"]',
-            'input[role="combobox"][aria-label*="Customer group"]',
-            'input[id*="CustGroup"][type="text"]',
-            'input[name*="CustGroup"]',
-            'input[id*="DirPartyQuickCreateForm"][id*="CustGroup"]',
-            'input[placeholder*="Customer group" i]'
-          ];
-          
-          let custGroupInput = null;
-          
-          // Try each selector until we find the field
-          for (const selector of custGroupSelectors) {
-            const locator = this.page.locator(selector).first();
-            const isVisible = await locator.isVisible({ timeout: 3000 }).catch(() => false);
-            if (isVisible) {
-              custGroupInput = locator;
-              this.log(`✅ Found customer group input with selector: ${selector}`);
-              break;
-            }
-          }
-          
-          if (!custGroupInput) {
-            this.log(`⚠️ Customer group input not found with primary selectors, trying generic search...`);
-            // Last resort: look for any combobox with visible state
-            const allComboboxes = this.page.locator('input[role="combobox"]');
-            const comboboxCount = await allComboboxes.count();
-            this.log(`📊 Found ${comboboxCount} total combobox fields on page`);
-            
-            // Try the first visible combobox (it might be the customer group)
-            for (let i = 0; i < comboboxCount; i++) {
-              const box = allComboboxes.nth(i);
-              const ariaLabel = await box.getAttribute('aria-label').catch(() => '');
-              const placeholder = await box.getAttribute('placeholder').catch(() => '');
-              const id = await box.getAttribute('id').catch(() => '');
-              this.log(`📋 Combobox ${i}: aria-label="${ariaLabel}", placeholder="${placeholder}", id="${id}"`);
-              
-              if ((ariaLabel ?? '').toLowerCase().includes('group') || (placeholder ?? '').toLowerCase().includes('group')) {
-                custGroupInput = box;
-                this.log(`✅ Found customer group via attribute inspection: index ${i}`);
-                break;
-              }
-            }
-          }
-          
-          if (custGroupInput) {
-            // Get the input element details for debugging
-            const inputId = await custGroupInput.getAttribute('id').catch(() => 'N/A');
-            const inputName = await custGroupInput.getAttribute('name').catch(() => 'N/A');
-            const inputAriaLabel = await custGroupInput.getAttribute('aria-label').catch(() => 'N/A');
-            this.log(`📋 Customer group input - ID: ${inputId}, Name: ${inputName}, Aria-Label: ${inputAriaLabel}`);
-            
-            // Click and fill the customer group input
-            await custGroupInput.waitFor({ state: 'visible', timeout: 5000 });
-            await custGroupInput.click({ timeout: 5000 });
-            await custGroupInput.clear();
-            await custGroupInput.fill(data.customerGroup);
-            this.log(`✍️ Typed customer group value: ${data.customerGroup}`);
-            
-            // Wait for dropdown to appear with options
-            await this.page.waitForTimeout(1000);
-            
-            // Look for the dropdown item matching the customer group value
-            // Try multiple selectors for the dropdown option
-            const dropdownSelectors = [
-              `[role="option"]:has-text("${data.customerGroup}")`,
-              `[role="option"] >> text="${data.customerGroup}"`,
-              `text="${data.customerGroup}"`,
-              `span:has-text("${data.customerGroup}")`,
-              `.ms-Dropdown-item:has-text("${data.customerGroup}")`,
-              `div[role="button"]:has-text("${data.customerGroup}")`
-            ];
-            
-            let dropdownItem = null;
-            for (const selector of dropdownSelectors) {
-              try {
-                const item = this.page.locator(selector);
-                const isVisible = await item.isVisible({ timeout: 2000 }).catch(() => false);
-                if (isVisible) {
-                  dropdownItem = item.first();
-                  this.log(`✅ Found dropdown item with selector: ${selector}`);
-                  break;
-                }
-              } catch (e) {
-                // Continue to next selector
-              }
-            }
-            
-            if (dropdownItem) {
-              // Try clicking the dropdown item
-              try {
-                await dropdownItem.click({ timeout: 3000 });
-                this.log(`✅ Selected customer group: ${data.customerGroup}`);
-                await this.page.waitForTimeout(500);
-              } catch (e) {
-                this.log(`⚠️ Could not click dropdown item: ${e}, falling back to Tab key`);
-                // Fallback: press Tab to accept the value
-                await custGroupInput.press('Tab');
-                this.log(`✅ Customer group filled and Tab pressed (fallback): ${data.customerGroup}`);
-              }
-            } else {
-              this.log(`⚠️ Dropdown item not found, pressing Tab to accept typed value`);
-              // Fallback: press Tab to accept the value
-              await custGroupInput.press('Tab');
-              this.log(`✅ Customer group filled and Tab pressed: ${data.customerGroup}`);
-            }
-            await this.page.waitForTimeout(500);
-            
-            // Close any modal dialog that may have appeared after customer group change
-            // D365 shows confirmation modal: "If you change the customer group value, the default..."
-            this.log(`🔍 Checking for blocking modal after customer group change...`);
-            await this.closeBlockingModal();
-          } else {
-            this.log(`❌ Customer group input field not found`);
-            throw new Error('Customer group input field could not be located');
-          }
+          await this.customerGroupSelect.waitFor({ state: 'visible', timeout: 5000 });
+          await this.customerGroupSelect.click({ timeout: 5000 });
+          await this.customerGroupSelect.clear();
+          await this.customerGroupSelect.fill(data.customerGroup);
+          await this.customerGroupSelect.press('Tab');
+          this.log(`✅ Customer group filled successfully`);
+          await this.page.waitForTimeout(500);
         } catch (error) {
-          this.log(`⚠️ Customer group selection error: ${error}`);
-          // Don't throw - continue with other fields
+          this.log(`⚠️ Customer group fill error: ${error}`);
+          // Continue with other fields
         }
       }
 
-      // Select Delivery Terms by typing in input field (ONLY if data provided)
+      // Fill Delivery Terms (simple text input like firstName/lastName)
       if (data.deliveryTerms && data.deliveryTerms.trim() !== '') {
-        this.log(`🔍 Selecting delivery terms: ${data.deliveryTerms}`);
+        this.log(`✍️ Filling delivery terms: ${data.deliveryTerms}`);
         try {
-          // Look for a combobox or input related to delivery terms
-          const dlvTermsInputs = this.page.locator(
-            'input[id*="DeliveryTerms"], input[id*="DlvTerms"], input[aria-label*="Delivery" i], input[placeholder*="Delivery" i]'
-          );
-          const inputCount = await dlvTermsInputs.count();
-          
-          if (inputCount > 0) {
-            try {
-              const input = dlvTermsInputs.first();
-              await input.click({ timeout: 2000 });
-              await input.fill(data.deliveryTerms);
-              await input.press('Tab');
-              this.log(`✅ Delivery terms filled: ${data.deliveryTerms}`);
-            } catch (e) {
-              this.log(`   ⚠️ Could not fill delivery terms input: ${e.message}`);
-            }
-          } else {
-            this.log(`   ℹ️ Delivery terms input field not available`);
-          }
+          const dlvTermsInput = this.page.locator('input[id*="DeliveryTerms"], input[id*="DlvTerms"], input[role="combobox"][id*="Terms"]').first();
+          await dlvTermsInput.waitFor({ state: 'visible', timeout: 3000 });
+          await dlvTermsInput.click({ timeout: 3000 });
+          await dlvTermsInput.clear();
+          await dlvTermsInput.fill(data.deliveryTerms);
+          await dlvTermsInput.press('Tab');
+          this.log(`✅ Delivery terms filled: ${data.deliveryTerms}`);
+          await this.page.waitForTimeout(500);
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          this.log(`⚠️ Delivery terms selection error: ${errorMessage}`);
+          this.log(`⚠️ Delivery terms fill error: ${error}`);
+          // Continue with other fields
         }
       } else {
         this.log(`ℹ️ Skipping delivery terms (not provided)`);
       }
 
-      // Select Mode of Delivery by typing in input field (ONLY if data provided)
+      // Fill Delivery Mode (simple text input like firstName/lastName)
       if (data.deliveryMode && data.deliveryMode.trim() !== '') {
-        this.log(`🔍 Selecting delivery mode: ${data.deliveryMode}`);
+        this.log(`✍️ Filling delivery mode: ${data.deliveryMode}`);
         try {
-          // Look for a combobox or input related to delivery mode
-          const dlvModeInputs = this.page.locator(
-            'input[id*="DeliveryMode"], input[id*="DlvMode"], input[id*="ModeOfDelivery"], input[aria-label*="Mode" i], input[placeholder*="Mode" i]'
-          );
-          const inputCount = await dlvModeInputs.count();
-          
-          if (inputCount > 0) {
-            try {
-              const input = dlvModeInputs.first();
-              await input.click({ timeout: 2000 });
-              await input.fill(data.deliveryMode);
-              await input.press('Tab');
-              this.log(`✅ Delivery mode filled: ${data.deliveryMode}`);
-            } catch (e) {
-              this.log(`   ⚠️ Could not fill delivery mode input: ${e.message}`);
-            }
-          } else {
-            this.log(`   ℹ️ Delivery mode input field not available`);
-          }
+          const dlvModeInput = this.page.locator('input[id*="DeliveryMode"], input[id*="DlvMode"], input[role="combobox"][id*="Mode"]').first();
+          await dlvModeInput.waitFor({ state: 'visible', timeout: 3000 });
+          await dlvModeInput.click({ timeout: 3000 });
+          await dlvModeInput.clear();
+          await dlvModeInput.fill(data.deliveryMode);
+          await dlvModeInput.press('Tab');
+          this.log(`✅ Delivery mode filled: ${data.deliveryMode}`);
+          await this.page.waitForTimeout(500);
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          this.log(`⚠️ Delivery mode selection error: ${errorMessage}`);
+          this.log(`⚠️ Delivery mode fill error: ${error}`);
+          // Continue with other fields
         }
       } else {
         this.log(`ℹ️ Skipping delivery mode (not provided)`);
@@ -641,11 +509,13 @@ export class CreateCustomerPage extends BasePage {
               this.log(`✅ ZIP code filled: ${data.zipCode}`);
               await this.page.waitForTimeout(500);
             } catch (e) {
-              this.log(`   ⚠️ ZIP code field interaction error: ${e.message}`);
+              const errorMessage = e instanceof Error ? e.message : String(e);
+              this.log(`   ⚠️ ZIP code field interaction error: ${errorMessage}`);
             }
           }
         } catch (error) {
-          this.log(`⚠️ ZIP code entry error: ${error.message}`);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.log(`⚠️ ZIP code entry error: ${errorMessage}`);
         }
       } else {
         this.log(`ℹ️ Skipping ZIP code (not provided)`);
@@ -695,17 +565,15 @@ export class CreateCustomerPage extends BasePage {
       this.log('✅ Alt+Enter submitted - Save likely clicked');
       return;
     } catch (e) {
-      this.log(`⚠️ Alt+Enter failed: ${e.message}`);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      this.log(`⚠️ Alt+Enter failed: ${errorMessage}`);
     }
     
     // Fallback: Direct button click
     if (okButtonCount > 0) {
       try {
         const okButton = okButtonLocator.first();
-        this.log('⏳ Waiting for OKButton to be clickable...');
         await okButton.waitFor({ state: 'visible', timeout: 5000 });
-        
-        this.log('🖱️ Clicking OKButton directly...');
         await okButton.click({ force: true, timeout: 5000 });
         this.log('✅ OKButton clicked');
         
@@ -713,7 +581,8 @@ export class CreateCustomerPage extends BasePage {
         this.log('✅ Save completed');
         return;
       } catch (e) {
-        this.log(`⚠️ Direct click failed: ${e.message}`);
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        this.log(`⚠️ Direct click failed: ${errorMessage}`);
       }
     }
 
