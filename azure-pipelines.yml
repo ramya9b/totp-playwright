@@ -186,15 +186,15 @@ stages:
               publishLocation: 'pipeline'
             displayName: '📄 Upload Playwright HTML Report'
           
-          # Upload test results artifacts
+          # Upload test results artifacts (JUnit XML and JSON results)
           - task: PublishPipelineArtifact@1
-            condition: failed()
+            condition: succeededOrFailed()
             inputs:
               targetPath: 'test-results'
-              artifact: 'Test-Results-Artifacts'
+              artifact: 'test-results'
               publishLocation: 'pipeline'
             continueOnError: true
-            displayName: '📸 Upload Test Artifacts (Screenshots/Videos)'
+            displayName: '📊 Upload Test Results (JUnit XML & JSON)'
           
           # Upload Allure results (always publish)
           - task: PublishPipelineArtifact@1
