@@ -112,6 +112,14 @@ stages:
               script: 'npm ci'
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
+          # Install Allure reporter
+          - task: PowerShell@2
+            displayName: '📊 Install Allure Reporter'
+            inputs:
+              targetType: 'inline'
+              script: 'npm install --save-dev @playwright/test allure-playwright'
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+          
           # Install Playwright browsers
           - task: PowerShell@2
             displayName: '🎭 Install Playwright Browsers'
