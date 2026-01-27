@@ -1,6 +1,44 @@
-# CI Trigger - when code is pushed
+# CI Trigger - Smart path-based trigger on code changes
 trigger:
-  - main
+  branches:
+    include:
+      - main
+      - develop
+      - feature/*
+  paths:
+    include:
+      - tests/**
+      - pages/**
+      - utils/**
+      - global-setup.ts
+      - playwright.config.ts
+      - playwright.service.config.ts
+      - package.json
+      - package-lock.json
+      - azure-pipelines.yml
+    exclude:
+      - docs/**
+      - '*.md'
+      - DOCUMENTATION-INDEX.md
+      - IMPLEMENTATION-SUMMARY.md
+
+# PR Trigger - Run tests when Pull Requests are created or updated
+pr:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - tests/**
+      - pages/**
+      - utils/**
+      - global-setup.ts
+      - playwright.config.ts
+      - playwright.service.config.ts
+      - package.json
+      - package-lock.json
+      - azure-pipelines.yml
 
 # Scheduled triggers for daily and weekly execution
 schedules:
