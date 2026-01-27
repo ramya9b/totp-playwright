@@ -6,6 +6,7 @@ import config from './playwright.config';
 /* Learn more about service configuration at https://aka.ms/pww/docs/config */
 export default defineConfig({
   timeout: 30_000,
+  outputDir: 'test-results',
   globalSetup: require.resolve('./global-setup.ts'),
   use: {
     // any shared settings like baseURL, storageState, etc.
@@ -35,7 +36,7 @@ export default defineConfig({
       }
     }],
     ['json', { outputFile: 'test-results/results.json' }],
-    ['junit', { outputFile: 'test-results/results.xml' }],
+    ['junit', { outputFile: 'test-results/junit.xml' }],
     ['line'],
   ],
   projects: [
