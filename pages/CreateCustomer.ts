@@ -686,21 +686,28 @@ export class CreateCustomerPage extends BasePage {
       this.log(`   Error details: ${errorText}`);
     }
     
-    // Look for OKButton (Save button in D365)
-    const okButton = this.page.locator('button[id*="OKButton"], button[name="OKButton"]').first();
-    const okButtonCount = await okButton.count();
+    // Look for OKButton (Save button in D365) - this is the primary way to save in quick create forms
+    const okButtonLocator = this.page.locator('button[id*="OKButton"], button[name="OKButton"]');
+    const okButtonCount = await okButtonLocator.count();
     this.log(`📊 Found ${okButtonCount} OKButton elements`);
     
-    // Try clicking save button
     if (okButtonCount > 0) {
       try {
-        await okButton.waitFor({ state: 'visible', timeout: 5000 });
-        await okButton.click({ timeout: 5000 });
-        this.log('✅ Save button (OKButton) clicked');
+        const okButton = okButtonLocator.first();
+        this.log('🔍 Waiting for OKButton to be visible...');
+        await okButton.waitFor({ state: 'visible', timeout: 8000 });
+        
+        this.log('📍 Scrolling OKButton into view...');
+        await okButton.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+        await this.page.waitForTimeout(500);
+        
+        this.log('🖱️ Clicking OKButton...');
+        await okButton.click({ force: true, timeout: 5000 });
+        this.log('✅ Save button (OKButton) clicked successfully');
         
         // After clicking save, D365 may close the form/page context
         try {
-          await this.page.waitForTimeout(2000).catch(() => {
+          await this.page.waitForTimeout(3000).catch(() => {
             this.log('⚠️ Page context closed after save (expected)');
           });
         } catch (e) {
@@ -709,38 +716,19 @@ export class CreateCustomerPage extends BasePage {
         this.log('✅ Save completed successfully');
         return;
       } catch (e) {
-        this.log(`⚠️ OKButton click failed: ${e}`);
+        this.log(`⚠️ OKButton click failed: ${e.message}`);
       }
     }
 
-    // Try clicking via saveButton locator
-    if (await this.isElementVisible(this.saveButton, 5000)) {
-      try {
-        await this.clickElement(this.saveButton.first());
-        this.log('✅ Save button clicked');
-        
-        try {
-          await this.page.waitForTimeout(2000).catch(() => {
-            this.log('⚠️ Page context closed after save (expected)');
-          });
-        } catch (e) {
-          this.log('⚠️ Page closed after save');
-        }
-        return;
-      } catch (e) {
-        this.log(`⚠️ Save button click failed: ${e}`);
-      }
-    }
-
-    // Try pressing Ctrl+S as fallback
-    this.log('🔧 Trying keyboard shortcut Ctrl+S...');
+    // Fallback: Try pressing Ctrl+S
+    this.log('🔧 OKButton not available, trying keyboard shortcut Ctrl+S...');
     try {
       await this.page.keyboard.down('Control');
       await this.page.keyboard.press('s');
       await this.page.keyboard.up('Control');
       
       // Give D365 time to process the save
-      await this.page.waitForTimeout(2000);
+      await this.page.waitForTimeout(3000);
       
       // After Ctrl+S, check for validation errors that might indicate save failed
       const validationAfterSave = await this.page.locator('[class*="validation"], [class*="error"]').count();
