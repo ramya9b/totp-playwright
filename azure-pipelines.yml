@@ -152,6 +152,32 @@ stages:
                 Write-Host "📊 View results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
+          # Verify allure-results folder exists and has files
+          - task: PowerShell@2
+            condition: succeededOrFailed()
+            displayName: '🔍 Verify Allure Results Generated'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "📋 Checking allure-results folder..." -ForegroundColor Yellow
+                if (Test-Path 'allure-results') {
+                  $files = @(Get-ChildItem -Path 'allure-results' -Recurse -File)
+                  Write-Host "✅ allure-results folder found" -ForegroundColor Green
+                  Write-Host "📊 Total files: $($files.Count)" -ForegroundColor Green
+                  
+                  if ($files.Count -gt 0) {
+                    Write-Host "✅ Allure results successfully generated!" -ForegroundColor Green
+                    Write-Host "📁 Sample files:" -ForegroundColor Cyan
+                    $files | Select-Object -First 5 | ForEach-Object { Write-Host "   - $($_.Name)" }
+                  } else {
+                    Write-Host "⚠️ allure-results folder is empty" -ForegroundColor Yellow
+                  }
+                } else {
+                  Write-Host "❌ allure-results folder NOT found" -ForegroundColor Red
+                  Write-Host "📁 Contents of working directory:" -ForegroundColor Yellow
+                  Get-ChildItem -Path $(System.DefaultWorkingDirectory) | Select-Object -First 20 | ForEach-Object { Write-Host "   - $($_.Name)" }
+                }
+          
           # Publish test results
           - task: PublishTestResults@2
             condition: succeededOrFailed()
