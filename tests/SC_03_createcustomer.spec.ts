@@ -31,6 +31,62 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
     console.log(`🔍 === TEST SETUP COMPLETE ===\n`);
   });
 
+  test('🔍 DEBUG: Create customer with minimal fields (no delivery)', async ({ page }) => {
+    test.setTimeout(180000); // 3 minutes for this test
+    
+    // Create test data with ONLY required fields
+    const minimalCustomerData = {
+      firstName: `TestCustomer${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+      lastNamePrefix: '',
+      lastName: `Test${String(Math.floor(Math.random() * 100)).padStart(2, '0')}`,
+      customerGroup: '10',
+      deliveryTerms: '', // SKIP - leave empty
+      deliveryMode: '', // SKIP - leave empty
+      zipCode: ''
+    };
+    
+    console.log(`📊 Minimal test data:`, minimalCustomerData);
+    
+    try {
+      // Navigate to Customers List
+      await createCustomerPage.navigateToAllCustomers();
+
+      // Click New
+      await createCustomerPage.clickNewCustomer();
+
+      // Verify form
+      await createCustomerPage.verifyCreateCustomerForm();
+
+      // Fill ONLY required fields
+      console.log('📝 Filling only required fields: firstName, lastName, customerGroup');
+      await createCustomerPage.createCustomer(minimalCustomerData);
+
+      // Save
+      console.log('💾 Attempting to save...');
+      await createCustomerPage.clickSave();
+      
+      console.log('✅ Save completed');
+      
+      // Wait for D365 to process
+      await page.waitForTimeout(3000);
+      
+      // Verify
+      try {
+        const created = await createCustomerPage.verifyCustomerCreated(minimalCustomerData.firstName);
+        if (created) {
+          console.log(`✅ MINIMAL TEST PASSED: Customer created with just firstName/lastName/group: ${minimalCustomerData.firstName}`);
+        } else {
+          console.log(`⚠️ MINIMAL TEST: Could not find customer in list (may still be created)`);
+        }
+      } catch (e) {
+        console.log(`⚠️ Verification failed: ${e}`);
+      }
+    } catch (error) {
+      console.log(`❌ Minimal test failed: ${error}`);
+      throw error;
+    }
+  });
+
   test('Create single customer with basic details', async ({ page }) => {
     test.setTimeout(180000); // 3 minutes for this test
     

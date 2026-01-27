@@ -561,8 +561,8 @@ export class CreateCustomerPage extends BasePage {
         }
       }
 
-      // Select Delivery Terms by typing in input field
-      if (data.deliveryTerms) {
+      // Select Delivery Terms by typing in input field (ONLY if data provided)
+      if (data.deliveryTerms && data.deliveryTerms.trim() !== '') {
         this.log(`🔍 Selecting delivery terms: ${data.deliveryTerms}`);
         try {
           // Look for a combobox or input related to delivery terms
@@ -587,10 +587,12 @@ export class CreateCustomerPage extends BasePage {
         } catch (error) {
           this.log(`⚠️ Delivery terms selection error: ${error.message}`);
         }
+      } else {
+        this.log(`ℹ️ Skipping delivery terms (not provided)`);
       }
 
-      // Select Mode of Delivery by typing in input field
-      if (data.deliveryMode) {
+      // Select Mode of Delivery by typing in input field (ONLY if data provided)
+      if (data.deliveryMode && data.deliveryMode.trim() !== '') {
         this.log(`🔍 Selecting delivery mode: ${data.deliveryMode}`);
         try {
           // Look for a combobox or input related to delivery mode
@@ -615,10 +617,12 @@ export class CreateCustomerPage extends BasePage {
         } catch (error) {
           this.log(`⚠️ Delivery mode selection error: ${error.message}`);
         }
+      } else {
+        this.log(`ℹ️ Skipping delivery mode (not provided)`);
       }
 
-      // Fill ZIP/Postal code with safer handling
-      if (data.zipCode) {
+      // Fill ZIP/Postal code with safer handling (ONLY if data provided)
+      if (data.zipCode && data.zipCode.trim() !== '') {
         this.log(`✍️ Filling ZIP code: ${data.zipCode}`);
         try {
           // Wait for ZIP input with timeout
@@ -641,6 +645,8 @@ export class CreateCustomerPage extends BasePage {
         } catch (error) {
           this.log(`⚠️ ZIP code entry error: ${error.message}`);
         }
+      } else {
+        this.log(`ℹ️ Skipping ZIP code (not provided)`);
       }
 
       // Click on Address group to ensure focus
