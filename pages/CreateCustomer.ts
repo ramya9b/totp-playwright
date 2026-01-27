@@ -585,7 +585,8 @@ export class CreateCustomerPage extends BasePage {
             this.log(`   ℹ️ Delivery terms input field not available`);
           }
         } catch (error) {
-          this.log(`⚠️ Delivery terms selection error: ${error.message}`);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.log(`⚠️ Delivery terms selection error: ${errorMessage}`);
         }
       } else {
         this.log(`ℹ️ Skipping delivery terms (not provided)`);
@@ -615,7 +616,8 @@ export class CreateCustomerPage extends BasePage {
             this.log(`   ℹ️ Delivery mode input field not available`);
           }
         } catch (error) {
-          this.log(`⚠️ Delivery mode selection error: ${error.message}`);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.log(`⚠️ Delivery mode selection error: ${errorMessage}`);
         }
       } else {
         this.log(`ℹ️ Skipping delivery mode (not provided)`);
@@ -677,15 +679,6 @@ export class CreateCustomerPage extends BasePage {
     // Wait for save button to be available
     await this.page.waitForTimeout(1000);
     
-    // First, check for validation errors that might prevent save
-    this.log('🔍 Checking for validation errors before save...');
-    const validationMessages = await this.page.locator('[class*="validation"], [class*="error"], [role="alert"]').count();
-    if (validationMessages > 0) {
-      this.log(`⚠️ Found ${validationMessages} potential validation messages on form`);
-      const errorText = await this.page.locator('[class*="validation"], [class*="error"]').first().textContent().catch(() => 'N/A');
-      this.log(`   Error details: ${errorText}`);
-    }
-    
     // Look for OKButton (Save button in D365) - this is the primary way to save in quick create forms
     const okButtonLocator = this.page.locator('button[id*="OKButton"], button[name="OKButton"]');
     const okButtonCount = await okButtonLocator.count();
@@ -694,26 +687,16 @@ export class CreateCustomerPage extends BasePage {
     if (okButtonCount > 0) {
       try {
         const okButton = okButtonLocator.first();
-        this.log('🔍 Waiting for OKButton to be visible...');
+        this.log('⏳ Waiting for OKButton to be visible...');
         await okButton.waitFor({ state: 'visible', timeout: 8000 });
-        
-        this.log('📍 Scrolling OKButton into view...');
-        await okButton.evaluate(el => el.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-        await this.page.waitForTimeout(500);
         
         this.log('🖱️ Clicking OKButton...');
         await okButton.click({ force: true, timeout: 5000 });
         this.log('✅ Save button (OKButton) clicked successfully');
         
-        // After clicking save, D365 may close the form/page context
-        try {
-          await this.page.waitForTimeout(3000).catch(() => {
-            this.log('⚠️ Page context closed after save (expected)');
-          });
-        } catch (e) {
-          this.log('⚠️ Page closed after save');
-        }
-        this.log('✅ Save completed successfully');
+        // Wait for save to complete
+        await this.page.waitForTimeout(3000);
+        this.log('✅ Save completed');
         return;
       } catch (e) {
         this.log(`⚠️ OKButton click failed: ${e.message}`);
@@ -721,7 +704,7 @@ export class CreateCustomerPage extends BasePage {
     }
 
     // Fallback: Try pressing Ctrl+S
-    this.log('🔧 OKButton not available, trying keyboard shortcut Ctrl+S...');
+    this.log('🔧 Trying keyboard shortcut Ctrl+S as fallback...');
     try {
       await this.page.keyboard.down('Control');
       await this.page.keyboard.press('s');
@@ -729,15 +712,6 @@ export class CreateCustomerPage extends BasePage {
       
       // Give D365 time to process the save
       await this.page.waitForTimeout(3000);
-      
-      // After Ctrl+S, check for validation errors that might indicate save failed
-      const validationAfterSave = await this.page.locator('[class*="validation"], [class*="error"]').count();
-      if (validationAfterSave > 0) {
-        this.log(`⚠️ Validation errors detected after Ctrl+S - save may have failed`);
-        const errorMsg = await this.page.locator('[class*="validation"], [class*="error"]').first().textContent().catch(() => 'Unknown error');
-        this.log(`   Error: ${errorMsg}`);
-      }
-      
       this.log('✅ Ctrl+S submitted');
       return;
     } catch (e) {
