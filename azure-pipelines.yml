@@ -278,43 +278,7 @@ stages:
               else
                 echo "⚠️ No Allure results found (creating placeholder)"
                 mkdir -p allure-report
-                cat > allure-report/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Allure Report - No Results</title>
-  <meta charset="UTF-8">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-      background: #f5f5f5;
-    }
-    .container {
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    h1 { color: #d9534f; }
-    p { color: #666; line-height: 1.6; }
-    .warning { background: #fcf8e3; border: 1px solid #faebcc; padding: 10px; border-radius: 4px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>⚠️ No Allure Results Found</h1>
-    <p>The Allure results directory was empty or not published from the Test stage.</p>
-    <p>Please check:</p>
-    <ul>
-      <li>Test stage completed successfully</li>
-      <li>Allure-Results artifact was published</li>
-      <li>Test results directory exists</li>
-    </ul>
-  </div>
-</body>
-</html>
-EOF
+                echo '<!DOCTYPE html><html><head><title>Allure Report - No Results</title><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;margin:40px;background:#f5f5f5}.container{background:#fff;padding:20px;border-radius:8px}.h1{color:#d9534f}p{color:#666}</style></head><body><div class="container"><h1>⚠️ No Allure Results Found</h1><p>The Allure results directory was empty or not published from the Test stage.</p></div></body></html>' > allure-report/index.html
                 echo "✅ Placeholder report created"
               fi
             displayName: '🚀 Generate Allure Report'
