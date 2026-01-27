@@ -561,68 +561,56 @@ export class CreateCustomerPage extends BasePage {
         }
       }
 
-      // Select Delivery Terms with improved handling
+      // Select Delivery Terms by typing in input field
       if (data.deliveryTerms) {
         this.log(`🔍 Selecting delivery terms: ${data.deliveryTerms}`);
         try {
-          // Check if button exists first
-          const dlvTermsCount = await this.deliveryTermsButton.count();
-          if (dlvTermsCount === 0) {
-            this.log(`   ⚠️ Delivery terms button not found on form`);
-          } else {
-            // Try to click with short timeout, skip scroll to avoid hanging
+          // Look for a combobox or input related to delivery terms
+          const dlvTermsInputs = this.page.locator(
+            'input[id*="DeliveryTerms"], input[id*="DlvTerms"], input[aria-label*="Delivery" i], input[placeholder*="Delivery" i]'
+          );
+          const inputCount = await dlvTermsInputs.count();
+          
+          if (inputCount > 0) {
             try {
-              await this.deliveryTermsButton.click({ timeout: 3000 });
-              this.log(`✅ Delivery terms button clicked`);
-              
-              // Wait for lookup modal to open
-              await this.page.waitForTimeout(1000);
-              
-              // Look for the delivery terms value in grid
-              const deliveryTermsCell = this.page.getByRole('gridcell', { name: data.deliveryTerms });
-              const cellCount = await deliveryTermsCell.count();
-              
-              if (cellCount > 0) {
-                await deliveryTermsCell.first().click({ timeout: 3000 });
-                this.log(`✅ Delivery terms selected: ${data.deliveryTerms}`);
-              }
+              const input = dlvTermsInputs.first();
+              await input.click({ timeout: 2000 });
+              await input.fill(data.deliveryTerms);
+              await input.press('Tab');
+              this.log(`✅ Delivery terms filled: ${data.deliveryTerms}`);
             } catch (e) {
-              this.log(`   ⚠️ Could not click delivery terms button: ${e.message}`);
+              this.log(`   ⚠️ Could not fill delivery terms input: ${e.message}`);
             }
+          } else {
+            this.log(`   ℹ️ Delivery terms input field not available`);
           }
         } catch (error) {
           this.log(`⚠️ Delivery terms selection error: ${error.message}`);
         }
       }
 
-      // Select Mode of Delivery with improved handling
+      // Select Mode of Delivery by typing in input field
       if (data.deliveryMode) {
         this.log(`🔍 Selecting delivery mode: ${data.deliveryMode}`);
         try {
-          // Check if button exists first
-          const dlvModeCount = await this.deliveryModeButton.count();
-          if (dlvModeCount === 0) {
-            this.log(`   ⚠️ Delivery mode button not found on form`);
-          } else {
-            // Try to click with short timeout, skip scroll to avoid hanging
+          // Look for a combobox or input related to delivery mode
+          const dlvModeInputs = this.page.locator(
+            'input[id*="DeliveryMode"], input[id*="DlvMode"], input[id*="ModeOfDelivery"], input[aria-label*="Mode" i], input[placeholder*="Mode" i]'
+          );
+          const inputCount = await dlvModeInputs.count();
+          
+          if (inputCount > 0) {
             try {
-              await this.deliveryModeButton.click({ timeout: 3000 });
-              this.log(`✅ Delivery mode button clicked`);
-              
-              // Wait for lookup modal to open
-              await this.page.waitForTimeout(1000);
-              
-              // Look for the delivery mode value in grid
-              const deliveryModeRow = this.page.getByRole('row', { name: data.deliveryMode });
-              const rowCount = await deliveryModeRow.count();
-              
-              if (rowCount > 0) {
-                await deliveryModeRow.first().click({ timeout: 3000 });
-                this.log(`✅ Delivery mode selected: ${data.deliveryMode}`);
-              }
+              const input = dlvModeInputs.first();
+              await input.click({ timeout: 2000 });
+              await input.fill(data.deliveryMode);
+              await input.press('Tab');
+              this.log(`✅ Delivery mode filled: ${data.deliveryMode}`);
             } catch (e) {
-              this.log(`   ⚠️ Could not click delivery mode button: ${e.message}`);
+              this.log(`   ⚠️ Could not fill delivery mode input: ${e.message}`);
             }
+          } else {
+            this.log(`   ℹ️ Delivery mode input field not available`);
           }
         } catch (error) {
           this.log(`⚠️ Delivery mode selection error: ${error.message}`);
@@ -683,6 +671,15 @@ export class CreateCustomerPage extends BasePage {
     // Wait for save button to be available
     await this.page.waitForTimeout(1000);
     
+    // First, check for validation errors that might prevent save
+    this.log('🔍 Checking for validation errors before save...');
+    const validationMessages = await this.page.locator('[class*="validation"], [class*="error"], [role="alert"]').count();
+    if (validationMessages > 0) {
+      this.log(`⚠️ Found ${validationMessages} potential validation messages on form`);
+      const errorText = await this.page.locator('[class*="validation"], [class*="error"]').first().textContent().catch(() => 'N/A');
+      this.log(`   Error details: ${errorText}`);
+    }
+    
     // Look for OKButton (Save button in D365)
     const okButton = this.page.locator('button[id*="OKButton"], button[name="OKButton"]').first();
     const okButtonCount = await okButton.count();
@@ -696,9 +693,8 @@ export class CreateCustomerPage extends BasePage {
         this.log('✅ Save button (OKButton) clicked');
         
         // After clicking save, D365 may close the form/page context
-        // So we wrap the wait in try-catch to handle graceful closure
         try {
-          await this.page.waitForTimeout(1000).catch(() => {
+          await this.page.waitForTimeout(2000).catch(() => {
             this.log('⚠️ Page context closed after save (expected)');
           });
         } catch (e) {
@@ -718,7 +714,7 @@ export class CreateCustomerPage extends BasePage {
         this.log('✅ Save button clicked');
         
         try {
-          await this.page.waitForTimeout(1000).catch(() => {
+          await this.page.waitForTimeout(2000).catch(() => {
             this.log('⚠️ Page context closed after save (expected)');
           });
         } catch (e) {
@@ -737,13 +733,17 @@ export class CreateCustomerPage extends BasePage {
       await this.page.keyboard.press('s');
       await this.page.keyboard.up('Control');
       
-      try {
-        await this.page.waitForTimeout(1000).catch(() => {
-          this.log('⚠️ Page context closed after save (expected)');
-        });
-      } catch (e) {
-        this.log('⚠️ Page closed after save');
+      // Give D365 time to process the save
+      await this.page.waitForTimeout(2000);
+      
+      // After Ctrl+S, check for validation errors that might indicate save failed
+      const validationAfterSave = await this.page.locator('[class*="validation"], [class*="error"]').count();
+      if (validationAfterSave > 0) {
+        this.log(`⚠️ Validation errors detected after Ctrl+S - save may have failed`);
+        const errorMsg = await this.page.locator('[class*="validation"], [class*="error"]').first().textContent().catch(() => 'Unknown error');
+        this.log(`   Error: ${errorMsg}`);
       }
+      
       this.log('✅ Ctrl+S submitted');
       return;
     } catch (e) {
@@ -755,8 +755,8 @@ export class CreateCustomerPage extends BasePage {
       const currentUrl = await this.getUrl();
       this.log(`📍 Current URL: ${currentUrl}`);
       
-      // If URL changed or contains 'entity', save likely worked
-      if (currentUrl.includes('entity') || currentUrl.includes('CustTable') || currentUrl.includes('?')) {
+      // If URL changed or doesn't contain form indicator, save likely worked
+      if (currentUrl.includes('entity') || !currentUrl.includes('DirPartyQuickCreateForm')) {
         this.log('✅ URL change detected - save likely successful');
         return;
       }
