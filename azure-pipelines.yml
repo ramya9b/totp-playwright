@@ -44,7 +44,7 @@ pr:
 schedules:
   # Daily schedule - runs every day at 2:00 AM UTC (adjust to your timezone)
   - cron: "0 2 * * *"
-    displayName: "Daily Test Execution at 2:00 AM UTC"
+    displayName: "Daily Test Execution at 9 AM UTC"
     branches:
       include:
         - main
