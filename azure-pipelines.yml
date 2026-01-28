@@ -1,3 +1,12 @@
+# Auto-authorize resources (IMPORTANT: Fixes permission issues in scheduled runs)
+resources:
+  variableGroups:
+  - group: Playwright-Testing-Secrets_totp
+  repositories:
+  - repository: self
+    type: git
+    ref: refs/heads/main
+
 # CI Trigger - Smart path-based trigger on code changes
 trigger:
   branches:
