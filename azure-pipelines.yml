@@ -50,17 +50,17 @@ pr:
 
 # Scheduled triggers for daily and weekly execution
 schedules:
-  # Daily schedule - runs every day at 10:30 AM IST (5:00 AM UTC)
+  # Daily schedule - runs every day at 5:00 AM UTC (10:30 AM IST)
   - cron: "0 5 * * *"
-    displayName: "Daily Test Execution at 11:00 AM IST (5:00 AM UTC)"
+    displayName: "Daily Test Execution at 5:00 AM UTC"
     branches:
       include:
         - main
     always: true  # Always run even if no changes
 
-  # Weekly schedule - runs every Monday at 10:30 AM IST (5:00 AM UTC)
+  # Weekly schedule - runs every Monday at 5:00 AM UTC (10:30 AM IST)
   - cron: "0 5 * * 1"
-    displayName: "Weekly Test Execution - Monday 10:30 AM IST (5:00 AM UTC)"
+    displayName: "Weekly Test Execution - Monday 5:00 AM UTC"
     branches:
       include:
         - main
