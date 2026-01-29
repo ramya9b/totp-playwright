@@ -94,9 +94,6 @@ stages:
       - job: PlaywrightTests
         displayName: 'Execute Tests at Scale'
         timeoutInMinutes: 60
-        # CRITICAL: Authorize scheduled runs to access protected resources
-        # Without this, scheduled pipelines cannot access variable groups and secure files
-        continueOnError: false
         
         steps:
           # Download authentication session file
