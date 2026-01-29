@@ -1,15 +1,10 @@
 # Auto-authorize resources (IMPORTANT: Fixes permission issues in scheduled runs)
 # These resources are now explicitly declared to allow scheduled pipeline access
 resources:
-  variable-groups:
-  - group: Playwright-Testing-Secrets_totp
-  - group: Playwright-Testing-Secrets
   repositories:
   - repository: self
     type: git
     ref: refs/heads/main
-  secure-files:
-  - D365AuthFile.json
 
 # CI Trigger - Smart path-based trigger on code changes
 trigger:
