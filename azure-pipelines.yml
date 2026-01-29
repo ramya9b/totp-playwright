@@ -42,7 +42,7 @@ pr:
 
 # Scheduled triggers for daily and weekly execution
 schedules:
-  # Daily schedule - runs every day at 2:00 AM UTC (adjust to your timezone)
+  # Daily schedule - runs every day at 4:00 AM UTC (adjust to your timezone)
   - cron: "0 2 * * *"
     displayName: "Daily Test Execution at 4.30 AM UTC"
     branches:
