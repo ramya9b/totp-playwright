@@ -1,0 +1,248 @@
+###############################################################################
+# Azure DevOps Pipeline: D365 Authentication File Refresh
+# Purpose: Automatically refresh D365 session file on schedule
+# Trigger: Daily or Weekly (configurable)
+###############################################################################
+
+trigger: none  # Disable CI trigger, use only scheduled triggers
+
+# Scheduled triggers for auth file refresh
+schedules:
+  # Daily refresh - runs every day at 2:00 AM UTC (7:30 AM IST)
+  - cron: "0 2 * * *"
+    displayName: "Daily Auth File Refresh - 2:00 AM UTC"
+    branches:
+      include:
+        - main
+    always: true
+
+  # Weekly refresh - runs every Sunday at 2:00 AM UTC
+  - cron: "0 2 * * 0"
+    displayName: "Weekly Auth File Refresh - Sunday 2:00 AM UTC"
+    branches:
+      include:
+        - main
+    always: true
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  - group: Playwright-Testing-Secrets
+  - name: D365_URL
+    value: 'https://avs-isv-puat.sandbox.operations.dynamics.com'
+
+stages:
+  - stage: RefreshAuth
+    displayName: 'Refresh D365 Authentication File'
+    jobs:
+      - job: RefreshAuthFile
+        displayName: 'Generate Fresh D365 Session'
+        timeoutInMinutes: 30
+        
+        steps:
+          # Checkout code
+          - checkout: self
+            fetchDepth: 1
+            displayName: '📥 Checkout Repository'
+
+          # Install Node.js
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+            displayName: '📦 Install Node.js v20'
+
+          # Install dependencies
+          - task: PowerShell@2
+            displayName: '📦 Install Dependencies'
+            inputs:
+              targetType: 'inline'
+              script: 'npm ci'
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+          # Install Playwright browsers
+          - task: PowerShell@2
+            displayName: '🎭 Install Playwright Browsers'
+            inputs:
+              targetType: 'inline'
+              script: 'npx playwright install --with-deps chromium'
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+          # Configure Git
+          - task: PowerShell@2
+            displayName: '🔧 Configure Git'
+            inputs:
+              targetType: 'inline'
+              script: |
+                git config --local user.email "d365-pipeline@azure.devops.com"
+                git config --local user.name "D365 Auth Pipeline"
+                Write-Host "✅ Git configured" -ForegroundColor Green
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+          # Run authentication (using global-setup)
+          - task: PowerShell@2
+            displayName: '🔐 Generate Fresh D365 Authentication'
+            env:
+              HEADLESS: 'true'
+              CI: 'false'  # Force fresh auth even though in CI
+              M365_USERNAME: $(M365_USERNAME)
+              M365_PASSWORD: $(M365_PASSWORD)
+              TOTP_SECRET: $(TOTP_SECRET)
+              D365_URL: $(D365_URL)
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "🔍 Starting D365 authentication..." -ForegroundColor Cyan
+                Write-Host "📍 Target: $(D365_URL)" -ForegroundColor Yellow
+                
+                # Create auth directory
+                if (!(Test-Path "auth")) {
+                  New-Item -ItemType Directory -Force -Path "auth" | Out-Null
+                  Write-Host "📁 Created auth directory" -ForegroundColor Green
+                }
+                
+                # Remove old auth file
+                if (Test-Path "auth/D365AuthFile.json") {
+                  Remove-Item "auth/D365AuthFile.json" -Force
+                  Write-Host "🗑️  Removed old auth file" -ForegroundColor Yellow
+                }
+                
+                # Run Playwright with test configuration to trigger global-setup
+                # This will authenticate and save session
+                Write-Host "⏳ Running authentication setup..." -ForegroundColor Cyan
+                npx playwright test --project=chromium --setup --workers=1
+                
+                if ($LASTEXITCODE -ne 0 -and -not (Test-Path "auth/D365AuthFile.json")) {
+                  Write-Host "⚠️  Setup exit code: $LASTEXITCODE" -ForegroundColor Yellow
+                }
+                
+                # Verify auth file exists
+                if (Test-Path "auth/D365AuthFile.json") {
+                  $fileSize = (Get-Item "auth/D365AuthFile.json").Length
+                  Write-Host "✅ Authentication file generated" -ForegroundColor Green
+                  Write-Host "📊 File size: $fileSize bytes" -ForegroundColor Green
+                } else {
+                  Write-Host "❌ Authentication file not found" -ForegroundColor Red
+                  Write-Host "📁 Contents of auth directory:" -ForegroundColor Yellow
+                  if (Test-Path "auth") {
+                    Get-ChildItem -Path "auth" | ForEach-Object { Write-Host "   - $($_.Name)" }
+                  }
+                  exit 1
+                }
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+              continueOnError: false
+
+          # Verify auth file content
+          - task: PowerShell@2
+            displayName: '✅ Verify Authentication File'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "🔍 Verifying authentication file..." -ForegroundColor Cyan
+                
+                if (Test-Path "auth/D365AuthFile.json") {
+                  $content = Get-Content "auth/D365AuthFile.json" | ConvertFrom-Json
+                  Write-Host "✅ Auth file is valid JSON" -ForegroundColor Green
+                  
+                  if ($content.cookies -and $content.cookies.Length -gt 0) {
+                    Write-Host "📊 Cookies stored: $($content.cookies.Length)" -ForegroundColor Green
+                  }
+                  
+                  if ($content.origins -and $content.origins.Length -gt 0) {
+                    Write-Host "📊 Origins stored: $($content.origins.Length)" -ForegroundColor Green
+                  }
+                  
+                  # Display timestamp
+                  $fileTime = (Get-Item "auth/D365AuthFile.json").LastWriteTime
+                  Write-Host "📅 Generated at: $fileTime UTC" -ForegroundColor Yellow
+                } else {
+                  Write-Host "❌ Auth file not found!" -ForegroundColor Red
+                  exit 1
+                }
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+          # Check for changes
+          - task: PowerShell@2
+            displayName: '📊 Check Git Changes'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "🔍 Checking for changes..." -ForegroundColor Cyan
+                git diff --name-only
+                
+                $changes = (git status --porcelain) -split "`n" | Where-Object { $_ -match 'D365AuthFile' }
+                
+                if ($changes) {
+                  Write-Host "✅ Authentication file has changed" -ForegroundColor Green
+                  Write-Host "##vso[task.setvariable variable=AuthFileChanged]true"
+                  $changes | ForEach-Object { Write-Host "   $($_)" }
+                } else {
+                  Write-Host "ℹ️  No changes detected in auth file" -ForegroundColor Blue
+                  Write-Host "##vso[task.setvariable variable=AuthFileChanged]false"
+                }
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+          # Commit and push (only if changed)
+          - task: PowerShell@2
+            displayName: '📤 Commit and Push Changes'
+            condition: eq(variables['AuthFileChanged'], 'true')
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "📝 Committing changes..." -ForegroundColor Cyan
+                
+                git add auth/D365AuthFile.json
+                
+                $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC'
+                git commit -m "chore: refresh D365 authentication session file
+
+- Timestamp: $timestamp
+- Triggered by: Azure Pipeline Scheduled Job (Auth Refresh)
+- Session tokens refreshed for production use"
+                
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "✅ Changes committed" -ForegroundColor Green
+                  
+                  Write-Host "🚀 Pushing to Azure DevOps..." -ForegroundColor Cyan
+                  git push origin main
+                  
+                  if ($LASTEXITCODE -eq 0) {
+                    Write-Host "✅ Changes pushed successfully" -ForegroundColor Green
+                  } else {
+                    Write-Host "❌ Failed to push changes" -ForegroundColor Red
+                    exit 1
+                  }
+                } else {
+                  Write-Host "❌ Failed to commit changes" -ForegroundColor Red
+                  exit 1
+                }
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+          # Post-refresh summary
+          - task: PowerShell@2
+            displayName: '📊 Post-Refresh Summary'
+            condition: succeededOrFailed()
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host ""
+                Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor Cyan
+                Write-Host "       ✅ D365 AUTH FILE REFRESH COMPLETE" -ForegroundColor Green
+                Write-Host "═══════════════════════════════════════════════════════" -ForegroundColor Cyan
+                Write-Host ""
+                Write-Host "📊 Summary:" -ForegroundColor Yellow
+                Write-Host "   • Pipeline Name: D365 Auth Refresh" -ForegroundColor White
+                Write-Host "   • Build ID: $(Build.BuildId)" -ForegroundColor White
+                Write-Host "   • Trigger: Scheduled (Daily/Weekly)" -ForegroundColor White
+                Write-Host "   • Status: ✅ Completed Successfully" -ForegroundColor Green
+                Write-Host ""
+                Write-Host "🔗 Resources:" -ForegroundColor Cyan
+                Write-Host "   • Repository: $(Build.Repository.Name)" -ForegroundColor White
+                Write-Host "   • Branch: $(Build.SourceBranchName)" -ForegroundColor White
+                Write-Host "   • Commit: $(Build.SourceVersion)" -ForegroundColor White
+                Write-Host ""
+                Write-Host "⏰ Schedule:" -ForegroundColor Yellow
+                Write-Host "   • Daily: 2:00 AM UTC (7:30 AM IST)" -ForegroundColor White
+                Write-Host "   • Weekly: Every Sunday 2:00 AM UTC" -ForegroundColor White
+                Write-Host ""
+
