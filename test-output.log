@@ -1,0 +1,785 @@
+
+> totp-playwright@1.0.0 test
+> playwright test SC_03_createcustomer.spec.ts --headed
+
+[dotenv@17.2.3] injecting env (11) from .env -- tip: ≡ƒ¢á∩╕Å  run anywhere with `dotenvx run -- yourcommand`
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ΓÜÖ∩╕Å  load multiple .env files with { path: ['.env.local', '.env'] }
+
+≡ƒöº === GLOBAL SETUP: D365 Authentication ===
+
+≡ƒùæ∩╕Å  Local environment: Removing old session to generate fresh one...
+≡ƒöº Browser mode: HEADED
+≡ƒöº CI environment: false
+≡ƒÜÇ Starting D365 TOTP authentication...
+≡ƒöº CI Environment: false
+≡ƒöº Service Principal Credentials Available: true
+Γ£à Using TOTP authentication for D365 F&O UI automation
+≡ƒÜÇ Starting complete D365 authentication flow...
+≡ƒöì Checking if already authenticated...
+≡ƒÜÇ Starting TOTP authentication flow...
+≡ƒîÉ [chromium] ≡ƒÜÇ Navigating to D365 login page...
+≡ƒîÉ [chromium] ≡ƒöº Using URL with prompt=login (FIDO-safe): https://avs-isv-puat.sandbox.operations.dynamics.com?prompt=login
+≡ƒîÉ [chromium] ≡ƒôº Entering email: ram***@alphavsolutions.com
+≡ƒîÉ [chromium] ≡ƒöì Checking for account selection screen...
+≡ƒîÉ [chromium] Γä╣∩╕Å Not on account selection screen
+≡ƒîÉ [chromium] Γ£à Email entered and submitted
+≡ƒîÉ [chromium] ≡ƒöì Detecting MFA screen...
+≡ƒîÉ [chromium] ≡ƒôì Current URL: https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAWClqhHitkUar2iRKQzEUXQAAAAACAAAAAAAQZgAAAAEAACAAAAAvMtgoyE7qmg7nCaft7ayQaxkpM8tGAdWyonMzXQHCjAAAAAAOgAAAAAIAACAAAACrkJFr6wZGUU11TgZOclcb8bVt-PJDwkPrp1nPGX7JCGAAAACQc_ia858FIN2wyr42-lDn1H4wC2TpgYHRN5sMoIrpJSm7xalTehU1yEdKCzBf4JUAlfjbWFThepp1eEQ32sXJbRL1ml93lFqhiCXkOhjyaj0ewNVnrY-aKv6ODrpJ3jFAAAAA1byt4bQateD9hFqwKtxarUSxN0Qnx_wYD_I708iEZx6VgtDrEqdv8eafO5rC59T7sLG_FhL44CfFMg4RLN8BPg%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639063863335117702.ZmUyZjI1NjEtZTFlZi00YWU5LWEyMWYtMzA1MjA5NzVkNzA3ZTA0YzVhYmYtMGU4MC00MDg3LWExYmEtMDQ1M2JiZGJmNjQz&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0
+≡ƒîÉ [chromium] ≡ƒöì Checking for "Use my password instead" option...
+≡ƒîÉ [chromium] Γ£à Disabled WebAuthn/PublicKeyCredential
+≡ƒîÉ [chromium] ≡ƒôì Current URL: https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/oauth2/authorize?client_id=00000015-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DAQAAANCMnd8BFdERjHoAwE_Cl-sBAAAAWClqhHitkUar2iRKQzEUXQAAAAACAAAAAAAQZgAAAAEAACAAAAAvMtgoyE7qmg7nCaft7ayQaxkpM8tGAdWyonMzXQHCjAAAAAAOgAAAAAIAACAAAACrkJFr6wZGUU11TgZOclcb8bVt-PJDwkPrp1nPGX7JCGAAAACQc_ia858FIN2wyr42-lDn1H4wC2TpgYHRN5sMoIrpJSm7xalTehU1yEdKCzBf4JUAlfjbWFThepp1eEQ32sXJbRL1ml93lFqhiCXkOhjyaj0ewNVnrY-aKv6ODrpJ3jFAAAAA1byt4bQateD9hFqwKtxarUSxN0Qnx_wYD_I708iEZx6VgtDrEqdv8eafO5rC59T7sLG_FhL44CfFMg4RLN8BPg%26RedirectTo%3Dhttps%253A%252F%252Favs-isv-puat.sandbox.operations.dynamics.com%252F&response_mode=form_post&nonce=639063863335117702.ZmUyZjI1NjEtZTFlZi00YWU5LWEyMWYtMzA1MjA5NzVkNzA3ZTA0YzVhYmYtMGU4MC00MDg3LWExYmEtMDQ1M2JiZGJmNjQz&redirect_uri=https%3A%2F%2Favs-isv-puat.sandbox.operations.dynamics.com%2F&max_age=86400&x-client-SKU=ID_NET472&x-client-ver=8.3.0.0
+≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: after-email-entry.png
+≡ƒîÉ [chromium] Γ£à Password field already visible - no need to bypass Windows Hello
+≡ƒîÉ [chromium] Γ£à Password field detected - skipping MFA detection (already on password page)
+≡ƒîÉ [chromium] ≡ƒöæ Looking for password field...
+≡ƒîÉ [chromium] Γ£à Password field found
+≡ƒîÉ [chromium] Γ£à Password entered and submitted
+≡ƒîÉ [chromium] ≡ƒöì Checking for account selection screen...
+≡ƒîÉ [chromium] Γä╣∩╕Å Not on account selection screen
+≡ƒîÉ [chromium] ≡ƒöÉ Handling MFA after password entry (Microsoft Authenticator / TOTP)
+≡ƒîÉ [chromium] ≡ƒöì Detecting MFA screen...
+≡ƒîÉ [chromium] ≡ƒôì Current URL: https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/login
+≡ƒîÉ [chromium] ≡ƒöì Checking for "Use my password instead" option...
+≡ƒîÉ [chromium] Γ£à Disabled WebAuthn/PublicKeyCredential
+≡ƒîÉ [chromium] ≡ƒôì Current URL: https://login.microsoftonline.com/e4c980ba-90aa-4bb3-b931-847a929f8f3f/login
+≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: after-email-entry.png
+≡ƒîÉ [chromium] Γä╣∩╕Å No "Use my password instead" option found
+≡ƒîÉ [chromium] ΓÅ▒∩╕Å Waiting 2000ms for MFA screen to fully load (CI: false)...
+≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: mfa-screen-before-detection.png
+≡ƒîÉ [chromium] ≡ƒöÄ Looking for verification option keywords: I can't use my Microsoft Authenticator, I can't use, Use a different verification option, different verification option, Use a verification code, Use a verification code from my mobile app, Enter code, Text me, Phone, SMS, Email, Receive a code, More verification options, use a verification code
+≡ƒîÉ [chromium] Γ£à Found option by keyword: I can't use my Microsoft Authenticator
+≡ƒîÉ [chromium] Γ£à Clicked keyword option: I can't use my Microsoft Authenticator
+≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: alternative-methods-extended.png
+≡ƒîÉ [chromium] ≡ƒöÄ Looking for verification option keywords: use a verification code, use a verification code from my mobile app, enter code, enter a code, verification code
+≡ƒîÉ [chromium] Γ£à Found option by keyword: use a verification code
+≡ƒîÉ [chromium] Γ£à Clicked keyword option: use a verification code
+≡ƒîÉ [chromium] Γ£à Clicked "Use a verification code" from alternatives
+≡ƒîÉ [chromium] ≡ƒöÄ Looking for verification option keywords: PhoneAppOTP, OTP, Authenticator app, Text, SMS, Phone call, Email code
+≡ƒîÉ [chromium] ≡ƒöÄ Looking for verification option keywords: next, continue, submit, verify, send code, enter code
+≡ƒîÉ [chromium] Γ£à Found option by keyword: verify
+≡ƒîÉ [chromium] Γ£à Clicked keyword option: verify
+≡ƒîÉ [chromium] Γ£à Clicked potential "Next/Continue/Submit" button to advance to TOTP entry
+≡ƒîÉ [chromium] ≡ƒöÉ TOTP field found: input#idTxtBx_SAOTCC_OTC
+≡ƒîÉ [chromium] Γ£à TOTP field found - proceeding to enter code
+≡ƒîÉ [chromium] ≡ƒöÉ TOTP field is ready - preparing for code entry...
+≡ƒîÉ [chromium] ≡ƒòÉ Current system time: 2026-02-11T05:59:37.037Z
+≡ƒîÉ [chromium] ≡ƒô╕ Screenshot: before-totp-entry.png
+≡ƒîÉ [chromium] ≡ƒöÉ TOTP Secret length: 16
+≡ƒîÉ [chromium] Γ£à TOTP instance created successfully
+≡ƒîÉ [chromium] ≡ƒº╣ Clearing TOTP field...
+≡ƒîÉ [chromium] ΓÅ▒∩╕Å Current TOTP window has 22 seconds remaining
+≡ƒîÉ [chromium] ≡ƒöæ Generating TOTP code RIGHT NOW (immediately before typing)...
+≡ƒîÉ [chromium] ≡ƒöæ TOTP Code: 763779
+≡ƒîÉ [chromium] ≡ƒòÉ Generated at: 2026-02-11T05:59:38.688Z
+≡ƒîÉ [chromium] ΓÅ▒∩╕Å Valid for: 22 seconds
+≡ƒîÉ [chromium] ≡ƒôï Debug - Previous: 356053 | Current: 763779 | Next: 864002
+≡ƒîÉ [chromium] Γî¿∩╕Å Typing code immediately: 763779
+≡ƒîÉ [chromium] ≡ƒöì Entered value: "763779"
+≡ƒîÉ [chromium] Γ£à Code entered correctly: 763779
+≡ƒîÉ [chromium] ≡ƒô╕ Screenshot: before-totp-submit.png
+≡ƒîÉ [chromium] ≡ƒòÉ Submitting code immediately...
+≡ƒîÉ [chromium] Γ£à Submitted TOTP with: input[type="submit"]
+≡ƒîÉ [chromium] ≡ƒô╕ Screenshot: after-totp-submit.png
+≡ƒîÉ [chromium] Γ£à MFA handling complete (or skipped if D365 reached)
+≡ƒîÉ [chromium] ≡ƒöì Checking for "Stay signed in?" prompt...
+≡ƒîÉ [chromium] Γ¥ô Found "Stay signed in?" prompt
+≡ƒîÉ [chromium] Γ£à Clicked "Yes" to stay signed in
+≡ƒîÉ [chromium] ΓÅ│ Waiting for login redirect...
+≡ƒîÉ [chromium] ≡ƒÄë Login redirect successful!
+≡ƒîÉ [chromium] ≡ƒÅá Verifying D365 homepage is loaded...
+≡ƒîÉ [chromium] Γ£à D365 homepage verified and loaded
+≡ƒîÉ [chromium] ΓÅ│ Waiting for network to settle...
+≡ƒîÉ [chromium] ΓÅ│ Additional 2-second buffer for session stability...
+≡ƒîÉ [chromium] ≡ƒì¬ Total cookies captured: 31
+≡ƒîÉ [chromium] ≡ƒöæ Critical auth cookies: ESTSAUTHLIGHT, ESTSAUTHPERSISTENT, ESTSAUTH, SignInStateCookie
+≡ƒîÉ [chromium] ≡ƒÆ╛ Session saved to auth/D365AuthFile.json
+≡ƒÄë Complete authentication flow successful!
+Γ£à Global setup complete - session saved to C:\Users\RamyaBIN\totp-playwright\auth\D365AuthFile.json
+≡ƒôè Session file size: 18959 bytes
+
+Running 3 tests using 1 worker
+
+[1A[2K[dotenv@17.2.3] injecting env (0) from .env -- tip: ≡ƒùé∩╕Å backup and recover secrets: https://dotenvx.com/ops
+
+[1A[2K[1/3] [chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:34:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ ≡ƒöì DEBUG: Create customer with minimal fields (no delivery)
+[1A[2K[chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:34:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ ≡ƒöì DEBUG: Create customer with minimal fields (no delivery)
+
+≡ƒöì === TEST SETUP DEBUG ===
+
+[1A[2K≡ƒôï Base URL: https://avs-isv-puat.sandbox.operations.dynamics.com
+
+[1A[2K≡ƒôï Current URL: about:blank
+
+[1A[2K≡ƒöÉ Session cookies: 31
+
+[1A[2K≡ƒÜÇ Navigating to: /
+
+[1A[2KΓ£à Navigated to: https://avs-isv-puat.sandbox.operations.dynamics.com/
+
+[1A[2K≡ƒöì === TEST SETUP COMPLETE ===
+
+
+[1A[2K≡ƒôè Minimal test data: {
+  firstName: [32m'TestCustomer667'[39m,
+  lastNamePrefix: [32m''[39m,
+  lastName: [32m'Test53'[39m,
+  customerGroup: [32m'10'[39m,
+  deliveryTerms: [32m''[39m,
+  deliveryMode: [32m''[39m,
+  zipCode: [32m''[39m
+}
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Navigating to All Customers list via direct URL...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Navigating to: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Page loaded: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for toolbar to load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: customers-list-loaded.png
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Navigation to All Customers completed
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Clicking New customer...
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for page to fully load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 toolbar div elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 12 role="toolbar" elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 263 total span elements on page
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with exact "New" text
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with "New" substring
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 clickable elements with "New" text
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found element with "New" text, attempting click
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Element tag name: SPAN
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found parent button, clicking it
+
+[1A[2K≡ƒô¥ Filling only required fields: firstName, lastName, customerGroup
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒº╛ Filling customer details...
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Sent Escape to attempt closing modal
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Quick create form container is visible with input fields
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found editable field: custtablelistpage_1_CustTableSearchType_input
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Form analysis: 75 visible inputs, 11 labels
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Sample inputs: [{"id":"custtablelistpage_1_QuickFilterControl_Input_input","name":"QuickFilterControl_Input","type":"text","placeholder":""},{"id":"custtablelistpage_1_CustTableSearchType_input","name":"CustTableSearchType","type":"text","placeholder":""},{"id":"custtablelistpage_1_SearchString_input","name":"SearchString","type":"text","placeholder":""}]
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï FORM inputs (excluding list page): [{"id":"CustTable_AccountNum_3_0_0_input","name":"","type":"text","placeholder":"","value":"000001"},{"id":"CustTable_Name_3_0_0_input","name":"","type":"text","placeholder":"","value":"Asus"},{"id":"CustTable_InvoiceAccount_3_0_0_input","name":"","type":"text","placeholder":"","value":""},{"id":"CustTable_CustGroup_3_0_0_input","name":"","type":"text","placeholder":"","value":"10"},{"id":"CustTable_Currency_3_0_0_input","name":"","type":"text","placeholder":"","value":"USD"},{"id":"CustTable_Phone_3_0_0_input","name":"","type":"text","placeholder":"","value":""},{"id":"CustTable_PhoneLocal_3_0_0_input","name":"","type":"text","placeholder":"","value":""},{"id":"MCRMerged_3_0_0_input","name":"","type":"text","placeholder":"","value":""},{"id":"CustTable_AccountNum_3_0_1_input","name":"","type":"text","placeholder":"","value":"000002"},{"id":"CustTable_Name_3_0_1_input","name":"","type":"text","placeholder":"","value":"GURU PRASAD"}]
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å First name: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à First name filled via generic fallback: TestCustomer667
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å Last name: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Last name filled via generic fallback: Test53
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å Customer group: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Customer group filled via generic fallback: 10
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping delivery terms (not provided)
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping delivery mode (not provided)
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping ZIP code (not provided)
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Customer details filled successfully
+
+[1A[2K≡ƒÆ╛ Attempting to save...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒÆ╛ Clicking Save...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 0 OKButton elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöæ Trying Alt+Enter keyboard shortcut...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Alt+Enter submitted - Save likely clicked
+
+[1A[2KΓ£à Save completed
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöì Verifying customer created with name: TestCustomer667
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Navigating to All Customers list via direct URL...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Navigating to: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Page loaded: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for toolbar to load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: customers-list-loaded.png
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Navigation to All Customers completed
+
+[1A[2K≡ƒîÉ [chromium] Γ¥î Customer not found in list: TestCustomer667
+
+[1A[2KΓÜá∩╕Å MINIMAL TEST: Could not find customer in list (may still be created)
+
+[1A[2K[2/3] [chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:87:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ Create single customer with basic details
+[1A[2K[chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:87:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ Create single customer with basic details
+
+≡ƒöì === TEST SETUP DEBUG ===
+
+[1A[2K≡ƒôï Base URL: https://avs-isv-puat.sandbox.operations.dynamics.com
+
+[1A[2K≡ƒôï Current URL: about:blank
+
+[1A[2K≡ƒöÉ Session cookies: 31
+
+[1A[2K≡ƒÜÇ Navigating to: /
+
+[1A[2KΓ£à Navigated to: https://avs-isv-puat.sandbox.operations.dynamics.com/
+
+[1A[2K≡ƒöì === TEST SETUP COMPLETE ===
+
+
+[1A[2K≡ƒôè Customer data loaded from Excel: {
+  firstName: [32m'Ravindran06'[39m,
+  lastNamePrefix: [32m'Sekar'[39m,
+  lastName: [32m'Srinivasan06'[39m,
+  customerGroup: [32m'10'[39m,
+  deliveryTerms: [32m'CFR'[39m,
+  deliveryMode: [32m'Truck'[39m,
+  zipCode: [32m'67001'[39m
+}
+
+[1A[2K≡ƒÄ▓ Random suffix added: 06
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Navigating to All Customers list via direct URL...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Navigating to: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Page loaded: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for toolbar to load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: customers-list-loaded.png
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Navigation to All Customers completed
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Clicking New customer...
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for page to fully load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 toolbar div elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 12 role="toolbar" elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 263 total span elements on page
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with exact "New" text
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with "New" substring
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 clickable elements with "New" text
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found element with "New" text, attempting click
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Element tag name: SPAN
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found parent button, clicking it
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒº╛ Filling customer details...
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Sent Escape to attempt closing modal
+
+[1A[2K≡ƒîÉ [chromium] Γ¥î Error filling customer details: Error: Quick create customer form not ready: No visible input fields found
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Form structure: 
+        <div id="AriaAlertArea" role="alert" class="hidden" aria-live="assertive" aria-relevant="all" aria-atomic="true"> Please wait. We're processing your request.</div>
+        <div id="MessageCenterEmbedded" class="navigationBar-pinnedElement" data-dyn-controlname="EmbeddedBar" data-dyn-role="MessageCenterButton"></div>
+        <div id="NavBar" data-dyn-role="NavigationBar" role="banner" data-dyn-controlname="NavigationBar" class="navigationBar layout-root-scope" data-dyn-container="true" d...
+
+[1A[2KΓ¥î Test failed: Error: Quick create customer form not ready: No visible input fields found
+
+[1A[2K[dotenv@17.2.3] injecting env (0) from .env -- tip: ΓÜÖ∩╕Å  load multiple .env files with { path: ['.env.local', '.env'] }
+
+[1A[2K[3/3] [chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:87:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ Create single customer with basic details (retry #1)
+[1A[2K
+≡ƒöì === TEST SETUP DEBUG ===
+
+[1A[2K≡ƒôï Base URL: https://avs-isv-puat.sandbox.operations.dynamics.com
+
+[1A[2K≡ƒôï Current URL: about:blank
+
+[1A[2K≡ƒöÉ Session cookies: 31
+
+[1A[2K≡ƒÜÇ Navigating to: /
+
+[1A[2KΓ£à Navigated to: https://avs-isv-puat.sandbox.operations.dynamics.com/
+
+[1A[2K≡ƒöì === TEST SETUP COMPLETE ===
+
+
+[1A[2K≡ƒôè Customer data loaded from Excel: {
+  firstName: [32m'Ravindran16'[39m,
+  lastNamePrefix: [32m'Sekar'[39m,
+  lastName: [32m'Srinivasan16'[39m,
+  customerGroup: [32m'10'[39m,
+  deliveryTerms: [32m'CFR'[39m,
+  deliveryMode: [32m'Truck'[39m,
+  zipCode: [32m'67001'[39m
+}
+
+[1A[2K≡ƒÄ▓ Random suffix added: 16
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Navigating to All Customers list via direct URL...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Navigating to: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Page loaded: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for toolbar to load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: customers-list-loaded.png
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Navigation to All Customers completed
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Clicking New customer...
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for page to fully load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 toolbar div elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 12 role="toolbar" elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 263 total span elements on page
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with exact "New" text
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with "New" substring
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 clickable elements with "New" text
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found element with "New" text, attempting click
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Element tag name: SPAN
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found parent button, clicking it
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒº╛ Filling customer details...
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Sent Escape to attempt closing modal
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Quick create form container is visible with input fields
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found editable field: custtablelistpage_1_CustTableSearchType_input
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Form analysis: 75 visible inputs, 11 labels
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Sample inputs: [{"id":"custtablelistpage_1_QuickFilterControl_Input_input","name":"QuickFilterControl_Input","type":"text","placeholder":""},{"id":"custtablelistpage_1_CustTableSearchType_input","name":"CustTableSearchType","type":"text","placeholder":""},{"id":"custtablelistpage_1_SearchString_input","name":"SearchString","type":"text","placeholder":""}]
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï FORM inputs (excluding list page): [{"id":"CustTable_AccountNum_3_0_0_input","name":"","type":"text","placeholder":"","value":"000001"},{"id":"CustTable_Name_3_0_0_input","name":"","type":"text","placeholder":"","value":"Asus"},{"id":"CustTable_InvoiceAccount_3_0_0_input","name":"","type":"text","placeholder":"","value":""},{"id":"CustTable_CustGroup_3_0_0_input","name":"","type":"text","placeholder":"","value":"10"},{"id":"CustTable_Currency_3_0_0_input","name":"","type":"text","placeholder":"","value":"USD"},{"id":"CustTable_Phone_3_0_0_input","name":"","type":"text","placeholder":"","value":""},{"id":"CustTable_PhoneLocal_3_0_0_input","name":"","type":"text","placeholder":"","value":""},{"id":"MCRMerged_3_0_0_input","name":"","type":"text","placeholder":"","value":""},{"id":"CustTable_AccountNum_3_0_1_input","name":"","type":"text","placeholder":"","value":"000002"},{"id":"CustTable_Name_3_0_1_input","name":"","type":"text","placeholder":"","value":"GURU PRASAD"}]
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å First name: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à First name filled via generic fallback: Ravindran16
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å Last name prefix: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Last name prefix filled via generic fallback: Sekar
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å Last name: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Last name filled via generic fallback: Srinivasan16
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Skipping readonly field
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å Customer group: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Customer group filled via generic fallback: 10
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å Delivery terms: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Delivery terms filled via generic fallback: CFR
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å Delivery mode: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Delivery mode filled via generic fallback: Truck
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å No editable field found after 5000ms
+
+[1A[2K≡ƒîÉ [chromium] ΓÜá∩╕Å ZIP code: Primary selectors failed, trying generic fallback...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à ZIP code filled via generic fallback: 67001
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Customer details filled successfully
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒÆ╛ Clicking Save...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 0 OKButton elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöæ Trying Alt+Enter keyboard shortcut...
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Alt+Enter submitted - Save likely clicked
+
+[1A[2KΓ£à Customer save action completed
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöì Verifying customer created with name: Ravindran16
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Navigating to All Customers list via direct URL...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Navigating to: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Page loaded: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for toolbar to load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: customers-list-loaded.png
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Navigation to All Customers completed
+
+[1A[2K≡ƒîÉ [chromium] Γ¥î Customer not found in list: Ravindran16
+
+[1A[2KΓÜá∩╕Å Customer may have been created but could not be found in list
+
+[1A[2K  1) [chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:87:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ Create single customer with basic details 
+
+    Error: Quick create customer form not ready: No visible input fields found
+
+       at ..\pages\CreateCustomer.ts:265
+
+      263 |
+      264 |     await this.saveDebugInfo('quick-create-form-not-ready');
+    > 265 |     throw new Error('Quick create customer form not ready: No visible input fields found');
+          |           ^
+      266 |   }
+      267 |
+      268 |   /**
+        at CreateCustomerPage.waitForQuickCreateForm (C:\Users\RamyaBIN\totp-playwright\pages\CreateCustomer.ts:265:11)
+        at CreateCustomerPage.createCustomer (C:\Users\RamyaBIN\totp-playwright\pages\CreateCustomer.ts:584:7)
+        at C:\Users\RamyaBIN\totp-playwright\tests\SC_03_createcustomer.spec.ts:109:7
+
+    attachment #1: screenshot (image/png) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\SC_03_createcustomer-≡ƒºæΓÇì≡ƒÆ╝-7f594-customer-with-basic-details-chromium\test-failed-1.png
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+    attachment #2: video (video/webm) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\SC_03_createcustomer-≡ƒºæΓÇì≡ƒÆ╝-7f594-customer-with-basic-details-chromium\video.webm
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+    Error Context: test-results\SC_03_createcustomer-≡ƒºæΓÇì≡ƒÆ╝-7f594-customer-with-basic-details-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    test-results\SC_03_createcustomer-≡ƒºæΓÇì≡ƒÆ╝-7f594-customer-with-basic-details-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\SC_03_createcustomer-≡ƒºæΓÇì≡ƒÆ╝-7f594-customer-with-basic-details-chromium\trace.zip
+
+    ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+
+
+[1A[2K[4/3] (retries) [chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:139:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ Create multiple customers from Excel (loop all rows)
+[1A[2K[chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:139:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ Create multiple customers from Excel (loop all rows)
+
+≡ƒöì === TEST SETUP DEBUG ===
+
+[1A[2K≡ƒôï Base URL: https://avs-isv-puat.sandbox.operations.dynamics.com
+
+[1A[2K≡ƒôï Current URL: about:blank
+
+[1A[2K≡ƒöÉ Session cookies: 31
+
+[1A[2K≡ƒÜÇ Navigating to: /
+
+[1A[2KΓ£à Navigated to: https://avs-isv-puat.sandbox.operations.dynamics.com/
+
+[1A[2K≡ƒöì === TEST SETUP COMPLETE ===
+
+
+[1A[2K≡ƒôè Found 3 customers in Excel
+
+[1A[2K
+≡ƒöó Creating customer 1 of 3: Ravindran75 Srinivasan75
+
+[1A[2K≡ƒÄ▓ Random suffix: 75
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Navigating to All Customers list via direct URL...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Navigating to: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Page loaded: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for toolbar to load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: customers-list-loaded.png
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Navigation to All Customers completed
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Clicking New customer...
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for page to fully load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 toolbar div elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 12 role="toolbar" elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 263 total span elements on page
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with exact "New" text
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with "New" substring
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 clickable elements with "New" text
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found element with "New" text, attempting click
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Element tag name: SPAN
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found parent button, clicking it
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒº╛ Filling customer details...
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Sent Escape to attempt closing modal
+
+[1A[2K≡ƒîÉ [chromium] Γ¥î Error filling customer details: Error: Quick create customer form not ready: No visible input fields found
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Form structure: 
+        <div id="AriaAlertArea" role="alert" class="hidden" aria-live="assertive" aria-relevant="all" aria-atomic="true"></div>
+        <div id="MessageCenterEmbedded" class="navigationBar-pinnedElement" data-dyn-controlname="EmbeddedBar" data-dyn-role="MessageCenterButton"></div>
+        <div id="NavBar" data-dyn-role="NavigationBar" role="banner" data-dyn-controlname="NavigationBar" class="navigationBar layout-root-scope" data-dyn-container="true" data-dyn-bind="
+    vars: { $navBar: $data },...
+
+[1A[2KΓ¥î Failed to create customer 1 (Ravindran75): Error: Quick create customer form not ready: No visible input fields found
+
+[1A[2K
+≡ƒöó Creating customer 2 of 3: Alice08 Johnson08
+
+[1A[2K≡ƒÄ▓ Random suffix: 08
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Navigating to All Customers list via direct URL...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Navigating to: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Page loaded: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for toolbar to load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: customers-list-loaded.png
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Navigation to All Customers completed
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Clicking New customer...
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for page to fully load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 toolbar div elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 12 role="toolbar" elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 263 total span elements on page
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with exact "New" text
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with "New" substring
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 clickable elements with "New" text
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found element with "New" text, attempting click
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Element tag name: SPAN
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found parent button, clicking it
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒº╛ Filling customer details...
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Sent Escape to attempt closing modal
+
+[1A[2K≡ƒîÉ [chromium] Γ¥î Error filling customer details: Error: Quick create customer form not ready: No visible input fields found
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Form structure: 
+        <div id="AriaAlertArea" role="alert" class="hidden" aria-live="assertive" aria-relevant="all" aria-atomic="true"> Please wait. We're processing your request.</div>
+        <div id="MessageCenterEmbedded" class="navigationBar-pinnedElement" data-dyn-controlname="EmbeddedBar" data-dyn-role="MessageCenterButton"></div>
+        <div id="NavBar" data-dyn-role="NavigationBar" role="banner" data-dyn-controlname="NavigationBar" class="navigationBar layout-root-scope" data-dyn-container="true" d...
+
+[1A[2KΓ¥î Failed to create customer 2 (Alice08): Error: Quick create customer form not ready: No visible input fields found
+
+[1A[2K
+≡ƒöó Creating customer 3 of 3: Bob82 Smith82
+
+[1A[2K≡ƒÄ▓ Random suffix: 82
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Navigating to All Customers list via direct URL...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Navigating to: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Page loaded: https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for toolbar to load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒô╕ Screenshot saved: customers-list-loaded.png
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Navigation to All Customers completed
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒöº Clicking New customer...
+
+[1A[2K≡ƒîÉ [chromium] ΓÅ│ Waiting for page to fully load...
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 toolbar div elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 12 role="toolbar" elements
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 263 total span elements on page
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with exact "New" text
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 spans with "New" substring
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôè Found 1 clickable elements with "New" text
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found element with "New" text, attempting click
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Element tag name: SPAN
+
+[1A[2K≡ƒîÉ [chromium] Γ£à Found parent button, clicking it
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒº╛ Filling customer details...
+
+[1A[2K≡ƒîÉ [chromium] Γä╣∩╕Å Sent Escape to attempt closing modal
+
+[1A[2K≡ƒîÉ [chromium] Γ¥î Error filling customer details: Error: Quick create customer form not ready: No visible input fields found
+
+[1A[2K≡ƒîÉ [chromium] ≡ƒôï Form structure: 
+        <div id="AriaAlertArea" role="alert" class="hidden" aria-live="assertive" aria-relevant="all" aria-atomic="true"></div>
+        <div id="MessageCenterEmbedded" class="navigationBar-pinnedElement" data-dyn-controlname="EmbeddedBar" data-dyn-role="MessageCenterButton"></div>
+        <div id="NavBar" data-dyn-role="NavigationBar" role="banner" data-dyn-controlname="NavigationBar" class="navigationBar layout-root-scope" data-dyn-container="true" data-dyn-bind="
+    vars: { $navBar: $data },...
+
+[1A[2KΓ¥î Failed to create customer 3 (Bob82): Error: Quick create customer form not ready: No visible input fields found
+
+[1A[2K
+Γ£à Completed creating 3 customers
+
+[1A[2K  1 flaky
+    [chromium] ΓÇ║ tests\SC_03_createcustomer.spec.ts:87:7 ΓÇ║ ≡ƒºæΓÇì≡ƒÆ╝ Customer Creation Tests ΓÇ║ Create single customer with basic details 
+  2 passed (6.8m)

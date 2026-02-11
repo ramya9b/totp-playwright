@@ -12,14 +12,14 @@ dotenv.config();
  */
 export default defineConfig({
   testDir: './tests',
-  timeout: 2 * 60 * 1000, // 2 minutes timeout
+  timeout: 2 * 60 * 1000, // 2 minutes timeout per test
   outputDir: 'test-results',
   
   /* Global setup runs ONCE before all tests to authenticate */
   globalSetup: require.resolve('./global-setup'),
   
   expect: {
-    timeout: 10000,
+    timeout: 5000, // Reduced from 10000 to fail fast
   },
   
   /* Global test settings for visual reporting */
@@ -32,7 +32,7 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    screenshot: 'on',
+    screenshot: 'only-on-failure', // Changed from 'on' to reduce overhead
     video: 'retain-on-failure',
     
     /* Launch browser in incognito mode to avoid Windows Hello/cached credentials */

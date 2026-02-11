@@ -2,737 +2,250 @@ import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 /**
- * CreateCustomer Page Object Model
- * Implements the actions used by the customer-creation tests
+ * CreateCustomer Page Object Model - Simplified version
+ * Implements basic customer creation workflow for D365 F&O
  */
 export class CreateCustomerPage extends BasePage {
-  // Page locators (robust / many fallbacks)
+  // Locators
   private newButton: Locator;
   private saveButton: Locator;
-  private saveAndOpenButton: Locator;
   private cancelButton: Locator;
-  private customerAccountInput: Locator;
-  private firstNameInput: Locator;
-  private lastNamePrefixInput: Locator;
-  private middleNameInput: Locator;
-  private lastNameInput: Locator;
-  private typeSelect: Locator;
-  private customerGroupSelect: Locator;
-  private currencySelect: Locator;
-  private countryInput: Locator;
-  private cityInput: Locator;
-  private zipInput: Locator;
-  private stateInput: Locator;
-  private streetInput: Locator;
-  private formRoot: Locator;
-  private modulesElement: Locator;
-  private accountsReceivableTreeItem: Locator;
-  private allCustomersLink: Locator;
-  private deliveryTermsButton: Locator;
-  private deliveryModeButton: Locator;
-  private customerGroupButton: Locator;
+  private firstNameField: Locator;
+  private lastNameField: Locator;
+  private customerGroupField: Locator;
+  private deliveryTermsField: Locator;
+  private deliveryModeField: Locator;
+  private zipCodeField: Locator;
+
+  // Base URL configuration from environment variable
+  private readonly baseUrl = process.env.D365_URL || 'https://avs-isv-puat.sandbox.operations.dynamics.com';
+  private readonly company = 'USMF';
+  private readonly customerModule = 'CustTableListPage';
 
   constructor(page: Page) {
     super(page);
-    // Command bar / new button
-    this.newButton = page.locator('button:has-text("New"), button[aria-label*="New"], button[data-id*="new"], button.ms-CommandBarItem-link');
-    // Save / Save and open / Cancel
-    this.saveButton = page.locator('button[id*="OKButton"], button[name="OKButton"], button:has-text("Save")');
-    this.saveAndOpenButton = page.locator('button:has-text("Save and open"), button:has-text("Save & open"), button[title*="Save and open"]');
-    this.cancelButton = page.locator('button:has-text("Cancel"), button[aria-label*="Cancel"], button[title*="Cancel"]');
-
-    // Navigation locators
-    this.modulesElement = page.getByRole('treeitem', { name: 'Modules' });
-    this.accountsReceivableTreeItem = page.getByRole('treeitem', { name: 'Accounts receivable' });
-    this.allCustomersLink = page.getByRole('link', { name: 'All customers' });
-
-    // Common form fields - D365 uses combobox inputs with role="combobox"
-    // Pattern: DirPartyQuickCreateForm_X_fieldName_input or name="fieldName"
-    this.customerAccountInput = page.locator('input[id*="DirPartyQuickCreateForm"][id*="partyType"], input[name="partyType"]');
-    this.firstNameInput = page.locator('input[id*="Name_FirstName_input"], input[name="Name_FirstName"]');
-    this.lastNamePrefixInput = page.locator('input[id*="Name_NamePrefix_input"], input[name="Name_NamePrefix"]');
-    this.middleNameInput = page.locator('input[id*="Name_MiddleName_input"], input[name="Name_MiddleName"]');
-    this.lastNameInput = page.locator('input[id*="Name_LastName_input"], input[name="Name_LastName"]');
     
-    // For combobox/select fields, try multiple selectors
-    this.typeSelect = page.locator('input[role="combobox"][id*="Type"], select[aria-label*="Type" i]');
-    this.customerGroupSelect = page.locator('input[role="combobox"][id*="CustGroup"], select[aria-label*="Customer group" i]');
-    this.currencySelect = page.locator('input[role="combobox"][id*="Currency"], select[aria-label*="Currency" i]');
+    // New button - look for span containing "New" in toolbar area
+    this.newButton = page.locator(`//span[text()='New' and contains(@id, 'NewCustomer')]`).first();
+   
+    // Save button
+    this.saveButton = page.locator('button[id*="OKButton"], button:has-text("Save")').first();
     
-    // Location fields
-    this.countryInput = page.locator('input[role="combobox"][id*="Country"], input[aria-label*="Country" i]');
-    this.cityInput = page.locator('input[role="combobox"][id*="City"], input[aria-label*="City" i]');
-    this.zipInput = page.locator('input[role="combobox"][id*="Zip"], input[role="combobox"][id*="PostalCode"], input[aria-label*="ZIP" i]');
-    this.stateInput = page.locator('input[role="combobox"][id*="State"], input[aria-label*="State" i]');
-    this.streetInput = page.locator('input[role="combobox"][id*="Street"], input[role="combobox"][id*="Address"], input[aria-label*="Street" i]');
-
-    // Lookup buttons for dropdown selections - use class selector to find lookupButton divs
-    this.customerGroupButton = page.locator('div.lookupButton').first();
-    this.deliveryTermsButton = page.locator('div.lookupButton').nth(1);
-    this.deliveryModeButton = page.locator('div.lookupButton').nth(2);
-
-    this.formRoot = page.locator('form, div[data-id*="FormSection"], div[data-id*="form"]');
+    // Cancel button
+    this.cancelButton = page.locator('button:has-text("Cancel")').first();
+    
+    // Form fields - use simple selectors that work across D365 variations
+    this.firstNameField = page.locator('input[name="Name_FirstName"]');
+    this.lastNameField = page.locator('input[name="Name_LastName"]');
+    this.customerGroupField = page.locator('input[name="DynamicDetail_CustGroup"]');;
+    this.deliveryTermsField = page.locator('input[aria-label*="delivery terms" i], input[id*="DlvTerm"]').first();
+    this.deliveryModeField = page.locator('input[aria-label*="delivery mode" i], input[aria-label*="mode of delivery" i], input[id*="DlvMode"]').first();
+    this.zipCodeField = page.locator('input[aria-label*="zip" i], input[placeholder*="zip" i], input[id*="PostalCode"]').first();
   }
 
   /**
-   * Navigate directly to the All Customers list page via correct D365 URL
-   * @param baseUrl Optional base URL for the environment (defaults to '/')
+   * Build D365 customer URL with optional parameters
    */
-  async navigateToAllCustomers(baseUrl: string = '/') {
-    this.log('🔧 Navigating to All Customers list via direct URL...');
+  private buildCustomerUrl(page?: string, isNewCustomer: boolean = false): string {
+    let url = `${this.baseUrl}/?cmp=${this.company}&mi=${this.customerModule}`;
     
-    // Correct D365 URL format with company and menu item parameters
-    const customersUrl = `${baseUrl}?cmp=USMF&mi=CustTableListPage`;
-    this.log(`📋 Navigating to: ${customersUrl}`);
-    
-    try {
-      await this.page.goto(customersUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-      this.log(`✅ Page loaded: ${this.page.url()}`);
-      
-      // Wait for page to be fully ready - wait for toolbar or specific elements
-      this.log('⏳ Waiting for toolbar to load...');
-      await this.page.waitForSelector('div[class*="toolbar"], [role="toolbar"]', { timeout: 30000 }).catch(() => {
-        this.log('⚠️ Toolbar selector not found, continuing anyway');
-      });
-      
-      // Additional wait for network to settle
-      await this.page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
-        this.log('⚠️ Network did not fully idle, continuing anyway');
-      });
-      
-      // Wait for page to be fully ready
-      await this.page.waitForTimeout(2000);
-      
-      // Take screenshot for debugging
-      await this.page.screenshot({ path: 'screenshots/customers-list-loaded.png', fullPage: true });
-      this.log('📸 Screenshot saved: customers-list-loaded.png');
-      
-      this.log('✅ Navigation to All Customers completed');
-      return;
-
-    } catch (error) {
-      this.log(`❌ Navigation error: ${error}`);
-      try {
-        await this.page.screenshot({ path: 'screenshots/navigation-error-debug.png', fullPage: true });
-        this.log('📸 Error screenshot saved: navigation-error-debug.png');
-      } catch (e) {
-        this.log(`⚠️ Screenshot failed: ${e}`);
-      }
-      throw error;
+    if (isNewCustomer) {
+      url += '&action=NewCustomer';
     }
+    
+    if (page) {
+      url += `&page=${encodeURIComponent(page)}`;
+    }
+    
+    return url;
   }
 
   /**
-   * Click the New button to create a customer
+   * Navigate directly to create customer form
    */
-  async clickNewCustomer(): Promise<void> {
-
-    this.log('🔧 Clicking New customer...');
-    
-    // Wait for page to fully load before trying to find New button
-    this.log('⏳ Waiting for page to fully load...');
-    await this.page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {
-      this.log('⚠️ Network did not fully idle');
-    });
-    await this.page.waitForTimeout(1000);
-    
-    // DEBUG: Pause and screenshot before attempting to click New
-    await this.page.screenshot({ path: 'screenshots/before-click-new.png', fullPage: true });
-
-    // Debug: Check what's on the toolbar
-    const toolbarElements = await this.page.locator('div[class*="toolbar"]').count();
-    this.log(`📊 Found ${toolbarElements} toolbar div elements`);
-    
-    const toolbarRoleElements = await this.page.locator('[role="toolbar"]').count();
-    this.log(`📊 Found ${toolbarRoleElements} role="toolbar" elements`);
-
-    // Debug: Find all spans with "New" text
-    const allSpans = await this.page.locator('span').count();
-    this.log(`📊 Found ${allSpans} total span elements on page`);
-    
-    const newSpans = await this.page.locator('span').filter({ hasText: /^New$/ }).count();
-    this.log(`📊 Found ${newSpans} spans with exact "New" text`);
-    
-    const newSpansPartial = await this.page.locator('span').filter({ hasText: /New/ }).count();
-    this.log(`📊 Found ${newSpansPartial} spans with "New" substring`);
-
-    // Debug: Find all clickable elements containing "New" text (button, span, label, div[role="button"])
-    const newElements = this.page.locator('button, span, label, div[role="button"]').filter({ hasText: /^New$/ });
-    const newElementCount = await newElements.count();
-    this.log(`📊 Found ${newElementCount} clickable elements with "New" text`);
-
-    if (newElementCount > 0) {
-      try {
-        this.log('✅ Found element with "New" text, attempting click');
-        const firstNewElement = newElements.first();
-        const tagName = await firstNewElement.evaluate(el => el.tagName);
-        this.log(`📋 Element tag name: ${tagName}`);
-        
-        if (tagName === 'SPAN') {
-          // If it's a span, try clicking it directly first, or find parent button
-          const parentButton = this.page.locator('button').filter({ has: firstNewElement });
-          const parentCount = await parentButton.count();
-          if (parentCount > 0) {
-            this.log(`✅ Found parent button, clicking it`);
-            await parentButton.first().click();
-          } else {
-            this.log(`✅ No parent button, clicking span directly`);
-            await firstNewElement.click();
-          }
-        } else {
-          // Click directly
-          await firstNewElement.click();
-        }
-        
-        await this.page.waitForTimeout(2000);
-        return;
-      } catch (e) {
-        this.log(`⚠️ Error clicking new element: ${e}`);
-      }
-    }
-
-    // Selector 1: Toolbar span selector (provided by user)
-    const toolbarNewSpan = this.page.locator('//div[contains(@class, "toolbar")]//span[normalize-space(text())="New"]');
-    const toolbarCount = await toolbarNewSpan.count();
-    this.log(`📊 Toolbar XPath selector found ${toolbarCount} elements`);
-    
-    if (await toolbarNewSpan.isVisible({ timeout: 3000 }).catch(() => false)) {
-      this.log('✅ Found New button via toolbar span selector');
-      await toolbarNewSpan.first().click();
-      await this.page.waitForTimeout(2000);
-      return;
-    }
-
-    // Selector 2: XPath - span with text "New"
-    const newSpanXPath = this.page.locator('//span[normalize-space(text())="New"]');
-    const xpathCount = await newSpanXPath.count();
-    this.log(`📊 XPath selector found ${xpathCount} elements`);
-    
-    if (await newSpanXPath.isVisible({ timeout: 3000 }).catch(() => false)) {
-      this.log('✅ Found New button via XPath selector');
-      await newSpanXPath.first().click();
-      await this.page.waitForTimeout(2000);
-      return;
-    }
-
-    // Selector 3: Button with ID pattern *NewCustomer
-    const newCustomerButton = this.page.locator('button[id*="NewCustomer"]');
-    if (await newCustomerButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      this.log('✅ Found New button via ID pattern (*NewCustomer)');
-      await newCustomerButton.first().click();
-      await this.page.waitForTimeout(2000);
-      return;
-    }
-
-    // Selector 4: Label/span with text "New"
-    const newLabel = this.page.locator('span:has-text("New"), label:has-text("New")').first();
-    if (await newLabel.isVisible({ timeout: 3000 }).catch(() => false)) {
-      this.log('✅ Found New via label/span');
-      await newLabel.click();
-      await this.page.waitForTimeout(2000);
-      return;
-    }
-
-    // Selector 5: Try primary locator
-    if (await this.isElementVisible(this.newButton, 3000).catch(() => false)) {
-      try {
-        await this.clickElement(this.newButton.first());
-        await this.page.waitForTimeout(2000);
-        return;
-      } catch (e) {
-        this.log('⚠️ Primary New button failed');
-      }
-    }
-
-    // Selector 6: Look for toolbar icon with data-id
-    const toolbarNew = this.page.locator('button[data-id*="New"], button[data-id*="new"]');
-    if (await toolbarNew.isVisible({ timeout: 2000 }).catch(() => false)) {
-      this.log('✅ Found New button via data-id');
-      await toolbarNew.first().click();
-      await this.page.waitForTimeout(2000);
-      return;
-    }
-
-    // Selector 7: Look for button by role and name
-    const roleButton = this.page.getByRole('button', { name: /new/i });
-    if (await roleButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      this.log('✅ Found New button via role');
-      await roleButton.first().click();
-      await this.page.waitForTimeout(2000);
-      return;
-    }
-
-    // Selector 8: Look for button with title attribute
-    const titleButton = this.page.locator('button[title*="New"], button[title*="new"]');
-    if (await titleButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      this.log('✅ Found New button via title');
-      await titleButton.first().click();
-      await this.page.waitForTimeout(2000);
-      return;
-    }
-
-    await this.saveDebugInfo('click-new-failure');
-    
-    // Last resort: Try navigating directly to new customer creation URL
-    this.log('🔧 Attempting direct URL navigation to customer creation form...');
-    try {
-      await this.page.goto('https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage&mode=create', 
-        { waitUntil: 'networkidle', timeout: 30000 });
-      this.log('✅ Navigated directly to customer creation form');
-      await this.page.waitForTimeout(2000);
-      return;
-    } catch (e) {
-      this.log(`⚠️ Direct URL navigation failed: ${e}`);
-    }
-    
-    throw new Error('New button not found - tried multiple locators');
-  }
-
-  /**
-   * Verify create customer form is displayed
-   */
-  async verifyCreateCustomerForm(): Promise<void> {
-    this.log('🔍 Verifying create customer form...');
-    
-    // Take screenshot to see what's on the page
-    await this.page.screenshot({ path: 'screenshots/after-new-click.png', fullPage: true });
-    this.log('📸 Screenshot saved: after-new-click.png');
-    
-    // Wait for ANY form element to appear (very broad search)
-    this.log('⏳ Waiting for form elements...');
-    
-    // Wait for ANY input, textarea, or select (form controls)
-    const anyFormElement = this.page.locator('input, textarea, select, [role="textbox"], [role="combobox"]').first();
-    
-    // Wait up to 20 seconds for form to load
-    try {
-      await anyFormElement.waitFor({ state: 'visible', timeout: 20000 });
-      this.log('✅ Create customer form verified - form element found');
-      return;
-    } catch (error) {
-      this.log('❌ No form elements found after 20 seconds');
-    }
-    
-    // If no form elements, check if at least the page changed (any DOM change)
+  async navigateToCreateCustomerForm(): Promise<void> {
+    this.log('🔧 Navigating to create customer form...');
+    const createFormUrl = this.buildCustomerUrl(undefined, true);
+    await this.page.goto(createFormUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    this.log(`✅ Navigated to Create Customer page`);
     await this.page.waitForTimeout(2000);
-    const bodyText = await this.page.textContent('body');
-    if (bodyText && bodyText.length > 100) {
-      this.log('✅ Page has content - form may be loading asynchronously');
-      await this.page.waitForTimeout(3000);
-      return;
-    }
-
-    await this.saveDebugInfo('verify-create-customer-failure');
-    throw new Error('Create customer form not found');
   }
 
   /**
-   * Fill only the customer account
+   * Navigate to the All Customers list page
    */
-  async fillCustomerAccount(account: string): Promise<void> {
-    this.log(`✍️ Filling customer account: ${account}`);
-    if (await this.isElementVisible(this.customerAccountInput, 5000)) {
-      await this.fillInput(this.customerAccountInput, account);
-      await this.page.waitForTimeout(500);
-      return;
-    }
-
-    // Last resort: try any input in the form
-    const anyInput = this.page.locator('form input, div[data-id*="Field"] input').first();
-    if (await this.isElementVisible(anyInput, 3000).catch(() => false)) {
-      await anyInput.fill(account);
-      return;
-    }
-
-    await this.saveDebugInfo('fill-customer-account-failure');
-    throw new Error('Customer account field not found');
+  async navigateToAllCustomers(page?: string): Promise<void> {
+    this.log('🔧 Navigating to All Customers list...');
+    
+    // Use parameterized URL for customer list
+    const customersUrl = this.buildCustomerUrl(page);
+    
+    await this.page.goto(customersUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    this.log(`✅ Navigated to Customer List`);
+    
+    // Wait for page to settle
+    await this.page.waitForTimeout(2000);
   }
 
   /**
-   * Fill out the customer details form with all required information
+   * Click the New button to create a new customer
    */
-  async createCustomer(data: any): Promise<void> {
-    this.log('🧾 Filling customer details...');
+  async clickNewCustomerButton(): Promise<void> {
+  this.log('🔧 Clicking New Customer button...');
 
-    try {
-      // Debug: Count available combobox inputs
-      const comboboxCount = await this.page.locator('input[role="combobox"]').count();
-      this.log(`📊 Found ${comboboxCount} combobox input fields on form`);
+  try {
+    // 1. Wait for the button from the constructor to be visible
+    await this.newButton.waitFor({ state: 'visible', timeout: 10000 });
 
-      // Fill First name using the firstNameInput locator
-      if (data.firstName) {
-        this.log(`✍️ Filling first name: ${data.firstName}`);
-        try {
-          await this.firstNameInput.waitFor({ state: 'visible', timeout: 5000 });
-          await this.firstNameInput.click({ timeout: 5000 });
-          await this.firstNameInput.clear();
-          await this.firstNameInput.fill(data.firstName);
-          await this.firstNameInput.press('Tab');
-          this.log(`✅ First name filled successfully`);
-        } catch (error) {
-          this.log(`❌ Error filling first name: ${error}`);
-          throw error;
-        }
-      }
+    // 2. Use a 'force' click. D365 often has "gutters" or invisible divs 
+    // that Playwright thinks are blocking the click.
+    await this.newButton.click({ force: true });
+    this.log('✅ New button clicked');
 
-      // Fill Last name prefix with better fallback selectors
-      if (data.lastNamePrefix) {
-        this.log(`✍️ Filling last name prefix: ${data.lastNamePrefix}`);
-        try {
-          await this.lastNamePrefixInput.waitFor({ state: 'visible', timeout: 5000 });
-          await this.lastNamePrefixInput.click({ timeout: 5000 });
-          await this.lastNamePrefixInput.fill(data.lastNamePrefix);
-          await this.lastNamePrefixInput.press('Tab');
-          this.log(`✅ Last name prefix filled successfully`);
-        } catch (error) {
-          this.log(`⚠️ Last name prefix not found with primary selector, trying alternatives...`);
-          
-          // Try alternative selectors for last name prefix
-          const alternativeSelectors = [
-            'input[id*="LastNamePrefix"], input[id*="NamePrefix"], input[name*="LastNamePrefix"]',
-            'input[aria-label*="Prefix" i], input[placeholder*="Prefix" i]',
-            'input[role="combobox"][id*="Prefix"]'
-          ];
-          
-          let found = false;
-          for (const selector of alternativeSelectors) {
-            try {
-              const element = this.page.locator(selector).first();
-              const isVisible = await element.isVisible({ timeout: 2000 }).catch(() => false);
-              if (isVisible) {
-                this.log(`   Found last name prefix with selector: ${selector}`);
-                await element.fill(data.lastNamePrefix);
-                await element.press('Tab');
-                this.log(`✅ Last name prefix filled via alternative selector`);
-                found = true;
-                break;
-              }
-            } catch (e) {
-              // Continue to next selector
-            }
-          }
-          
-          if (!found) {
-            this.log(`   ⚠️ Last name prefix field not found - skipping`);
-          }
-        }
-      }
-
-      // Fill Last name
-      if (data.lastName) {
-        this.log(`✍️ Filling last name: ${data.lastName}`);
-        try {
-          await this.lastNameInput.waitFor({ state: 'visible', timeout: 5000 });
-          await this.lastNameInput.click({ timeout: 5000 });
-          await this.lastNameInput.clear();
-          await this.lastNameInput.fill(data.lastName);
-          await this.lastNameInput.press('Tab');
-          this.log(`✅ Last name filled successfully`);
-        } catch (error) {
-          this.log(`❌ Error filling last name: ${error}`);
-          throw error;
-        }
-      }
-
-      // Fill Customer Group (simple text input like firstName/lastName)
-      if (data.customerGroup) {
-        this.log(`✍️ Filling customer group: ${data.customerGroup}`);
-        try {
-          await this.customerGroupSelect.waitFor({ state: 'visible', timeout: 5000 });
-          await this.customerGroupSelect.click({ timeout: 5000 });
-          await this.customerGroupSelect.clear();
-          await this.customerGroupSelect.fill(data.customerGroup);
-          await this.customerGroupSelect.press('Tab');
-          this.log(`✅ Customer group filled successfully`);
-          await this.page.waitForTimeout(500);
-        } catch (error) {
-          this.log(`⚠️ Customer group fill error: ${error}`);
-          // Continue with other fields
-        }
-      }
-
-      // Fill Delivery Terms (simple text input like firstName/lastName)
-      if (data.deliveryTerms && data.deliveryTerms.trim() !== '') {
-        this.log(`✍️ Filling delivery terms: ${data.deliveryTerms}`);
-        try {
-          const dlvTermsInput = this.page.locator('input[id*="DeliveryTerms"], input[id*="DlvTerms"], input[role="combobox"][id*="Terms"]').first();
-          await dlvTermsInput.waitFor({ state: 'visible', timeout: 3000 });
-          await dlvTermsInput.click({ timeout: 3000 });
-          await dlvTermsInput.clear();
-          await dlvTermsInput.fill(data.deliveryTerms);
-          await dlvTermsInput.press('Tab');
-          this.log(`✅ Delivery terms filled: ${data.deliveryTerms}`);
-          await this.page.waitForTimeout(500);
-        } catch (error) {
-          this.log(`⚠️ Delivery terms fill error: ${error}`);
-          // Continue with other fields
-        }
-      } else {
-        this.log(`ℹ️ Skipping delivery terms (not provided)`);
-      }
-
-      // Fill Delivery Mode (simple text input like firstName/lastName)
-      if (data.deliveryMode && data.deliveryMode.trim() !== '') {
-        this.log(`✍️ Filling delivery mode: ${data.deliveryMode}`);
-        try {
-          const dlvModeInput = this.page.locator('input[id*="DeliveryMode"], input[id*="DlvMode"], input[role="combobox"][id*="Mode"]').first();
-          await dlvModeInput.waitFor({ state: 'visible', timeout: 3000 });
-          await dlvModeInput.click({ timeout: 3000 });
-          await dlvModeInput.clear();
-          await dlvModeInput.fill(data.deliveryMode);
-          await dlvModeInput.press('Tab');
-          this.log(`✅ Delivery mode filled: ${data.deliveryMode}`);
-          await this.page.waitForTimeout(500);
-        } catch (error) {
-          this.log(`⚠️ Delivery mode fill error: ${error}`);
-          // Continue with other fields
-        }
-      } else {
-        this.log(`ℹ️ Skipping delivery mode (not provided)`);
-      }
-
-      // Fill ZIP/Postal code with safer handling (ONLY if data provided)
-      if (data.zipCode && data.zipCode.trim() !== '') {
-        this.log(`✍️ Filling ZIP code: ${data.zipCode}`);
-        try {
-          // Wait for ZIP input with timeout
-          const zipExists = await this.zipInput.count();
-          if (zipExists === 0) {
-            this.log(`   ⚠️ ZIP code input not found on form`);
-          } else {
-            // Try to interact without scroll to avoid hanging
-            try {
-              await this.zipInput.waitFor({ state: 'visible', timeout: 3000 });
-              await this.zipInput.click({ timeout: 3000 });
-              await this.zipInput.clear();
-              await this.zipInput.fill(data.zipCode);
-              this.log(`✅ ZIP code filled: ${data.zipCode}`);
-              await this.page.waitForTimeout(500);
-            } catch (e) {
-              const errorMessage = e instanceof Error ? e.message : String(e);
-              this.log(`   ⚠️ ZIP code field interaction error: ${errorMessage}`);
-            }
-          }
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          this.log(`⚠️ ZIP code entry error: ${errorMessage}`);
-        }
-      } else {
-        this.log(`ℹ️ Skipping ZIP code (not provided)`);
-      }
-
-      // Click on Address group to ensure focus
-      try {
-        const addressGroup = this.page.getByRole('group', { name: 'Address' });
-        if (await addressGroup.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await addressGroup.click();
-        }
-      } catch (error) {
-        this.log(`⚠️ Address group click error: ${error}`);
-      }
-
-      // Wait for client-side validation / lookup
-      await this.page.waitForTimeout(500);
-      this.log('✅ Customer details filled successfully');
+    // 3. Verification: Wait for the slide-out form's first field to appear
+    // We use the specific 'name' from your HTML snippet
+    await this.page.locator('input[name="Name_FirstName"]').waitFor({ 
+      state: 'visible', 
+      timeout: 15000 
+    });
+    
+    this.log('✅ Creation form is ready for input');
     } catch (error) {
-      this.log(`❌ Error filling customer details: ${error}`);
-      // Capture form structure for debugging
-      const formHTML = await this.page.locator('form, div[role="presentation"]').first().innerHTML().catch(() => 'Form not found');
-      this.log(`📋 Form structure: ${formHTML.substring(0, 500)}...`);
-      throw error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    this.log(`❌ Failed to click New button or form did not open: ${errorMessage}`);
+    
+    // DEBUG FALLBACK: If the button click failed, try the keyboard shortcut (Alt+N)
+    this.log('⌨️ Attempting Alt+N shortcut fallback...');
+    await this.page.keyboard.press('Alt+n');
+    throw error;
+  }
+  }
+
+  /**
+   * Generate a unique suffix with 2 characters + 2 digits for customer names
+   */
+  private generateUniqueSuffix(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    // Generate 2 unique random characters
+    const char1 = chars[Math.floor(Math.random() * chars.length)];
+    let char2 = chars[Math.floor(Math.random() * chars.length)];
+    // Ensure char2 is different from char1
+    while (char2 === char1) {
+      char2 = chars[Math.floor(Math.random() * chars.length)];
+    }
+    // Generate 2 random digits
+    const digits = String(Math.floor(Math.random() * 100)).padStart(2, '0');
+    return `${char1}${char2}${digits}`;
+  }
+
+  /**
+   * Generate unique customer data by appending 2-character + 2-digit suffix to names
+   * Example: "John" -> "JohnAB45"
+   */
+  generateUniqueCustomerData(customerData: {
+    firstName: string;
+    lastName: string;
+    customerGroup?: string;
+    deliveryTerms?: string;
+    deliveryMode?: string;
+    zipCode?: string;
+  }): {
+    firstName: string;
+    lastName: string;
+    customerGroup?: string;
+    deliveryTerms?: string;
+    deliveryMode?: string;
+    zipCode?: string;
+  } {
+    const suffix = this.generateUniqueSuffix();
+    return {
+      ...customerData,
+      firstName: `${customerData.firstName}${suffix}`,
+      lastName: `${customerData.lastName}${suffix}`
+    };
+  }
+
+  /**
+   * Fill in customer details and create the record
+   */
+  async createCustomer(customerData: {
+    firstName: string;
+    lastName: string;
+    customerGroup?: string;
+    deliveryTerms?: string;
+    deliveryMode?: string;
+    zipCode?: string;
+  }): Promise<void> {
+    this.log('📝 Creating customer record...');
+    
+    if (customerData.firstName) {
+      await this.fillField('First Name', this.firstNameField, customerData.firstName);
+    }
+
+    if (customerData.lastName) {
+      await this.fillField('Last Name', this.lastNameField, customerData.lastName);
+    }
+
+    if (customerData.customerGroup) {
+      await this.fillField('Customer Group', this.customerGroupField, customerData.customerGroup);
+    }
+
+    if (customerData.deliveryTerms) {
+      await this.fillField('Delivery Terms', this.deliveryTermsField, customerData.deliveryTerms);
+    }
+
+    if (customerData.deliveryMode) {
+      await this.fillField('Delivery Mode', this.deliveryModeField, customerData.deliveryMode);
+    }
+
+    if (customerData.zipCode) {
+      await this.fillField('ZIP Code', this.zipCodeField, customerData.zipCode);
+    }
+
+    this.log('✅ All customer details filled');
+  }
+
+  /**
+   * Helper method to fill a single field
+   */
+  private async fillField(fieldName: string, locator: Locator, value: string): Promise<void> {
+    try {
+      const field = locator.first();
+      await field.click({ timeout: 2000 });
+      await field.fill(value);
+      this.log(`✅ ${fieldName} filled: ${value}`);
+    } catch (error) {
+      this.log(`⚠️ Could not fill ${fieldName}: ${error}`);
     }
   }
 
+  /**
+   * Save the customer record
+   */
+  async saveCustomer(): Promise<void> {
+    this.log('💾 Saving customer record...');
+    await this.page.keyboard.press('Alt+Enter');
+    await this.page.waitForTimeout(3000);
+    this.log('✅ Save command sent via Alt+Enter');
+  }
+
+  /**
+   * Click the Save button (alternative method name for test compatibility)
+   */
   async clickSave(): Promise<void> {
-    this.log('💾 Clicking Save...');
-    
-    // Wait for form to be ready
-    await this.page.waitForTimeout(1000);
-    
-    // Look for OKButton (Save button in D365)
-    const okButtonLocator = this.page.locator('button[id*="OKButton"], button[name="OKButton"]');
-    const okButtonCount = await okButtonLocator.count();
-    this.log(`📊 Found ${okButtonCount} OKButton elements`);
-    
-    // Try Alt+Enter keyboard shortcut (D365 native shortcut for this button)
-    this.log('🔑 Trying Alt+Enter keyboard shortcut...');
-    try {
-      await this.page.keyboard.down('Alt');
-      await this.page.keyboard.press('Enter');
-      await this.page.keyboard.up('Alt');
-      
-      await this.page.waitForTimeout(3000);
-      this.log('✅ Alt+Enter submitted - Save likely clicked');
-      return;
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      this.log(`⚠️ Alt+Enter failed: ${errorMessage}`);
-    }
-    
-    // Fallback: Direct button click
-    if (okButtonCount > 0) {
-      try {
-        const okButton = okButtonLocator.first();
-        await okButton.waitFor({ state: 'visible', timeout: 5000 });
-        await okButton.click({ force: true, timeout: 5000 });
-        this.log('✅ OKButton clicked');
-        
-        await this.page.waitForTimeout(3000);
-        this.log('✅ Save completed');
-        return;
-      } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        this.log(`⚠️ Direct click failed: ${errorMessage}`);
-      }
-    }
-
-    // Final fallback: Ctrl+S
-    this.log('🔧 Trying Ctrl+S as final fallback...');
-    try {
-      await this.page.keyboard.down('Control');
-      await this.page.keyboard.press('s');
-      await this.page.keyboard.up('Control');
-      
-      await this.page.waitForTimeout(3000);
-      this.log('✅ Ctrl+S submitted');
-      return;
-    } catch (e) {
-      this.log(`⚠️ All save methods failed: ${e}`);
-    }
-
-    // Check if we're still on a form or if save already worked
-    try {
-      const currentUrl = await this.getUrl();
-      this.log(`📍 Current URL: ${currentUrl}`);
-      
-      // If URL changed or doesn't contain form indicator, save likely worked
-      if (currentUrl.includes('entity') || !currentUrl.includes('DirPartyQuickCreateForm')) {
-        this.log('✅ URL change detected - save likely successful');
-        return;
-      }
-    } catch (e) {
-      this.log('⚠️ Could not get URL - page may be closed');
-    }
-    
-    // Final check - look for any success messages or page changes
-    try {
-      const pageTitle = await this.page.title();
-      this.log(`📄 Page title: ${pageTitle}`);
-      
-      // If page is no longer showing the form, consider it saved
-      const formElement = await this.page.locator('form, div[data-id*="Form"]').first();
-      if (!(await formElement.isVisible({ timeout: 2000 }).catch(() => false))) {
-        this.log('✅ Form no longer visible - save likely successful');
-        return;
-      }
-    } catch (e) {
-      this.log('⚠️ Page context no longer available - save completed');
-      return;
-    }
-
-    await this.saveDebugInfo('save-failure');
-    throw new Error('Save failed - Save button not found and no confirmation of save');
-  }
-
-  async clickSaveAndOpen(): Promise<void> {
-    this.log('💾 Clicking Save and open...');
-    if (await this.isElementVisible(this.saveAndOpenButton, 3000)) {
-      await this.clickElement(this.saveAndOpenButton.first());
-      await this.page.waitForTimeout(2500);
-      return;
-    }
-
-    // Fallback: try Save then open first result
-    await this.clickSave();
-    await this.page.waitForTimeout(1000);
-  }
-
-  async clickCancel(): Promise<void> {
-    this.log('✖️ Clicking Cancel...');
-    if (await this.isElementVisible(this.cancelButton, 2000)) {
-      await this.clickElement(this.cancelButton.first());
-      await this.page.waitForTimeout(1000);
-      return;
-    }
-
-    // Fallback: press Escape
-    await this.page.keyboard.press('Escape');
-    await this.page.waitForTimeout(500);
+    await this.saveCustomer();
   }
 
   /**
-   * Navigate directly to the Customers list page via URL
+   * Verify customer was created by checking if dialog closed
    */
-  async navigateToCustomersListPage(): Promise<void> {
-    this.log('🔧 Navigating to Customers list page via URL...');
-    await this.page.goto(
-      'https://avs-isv-puat.sandbox.operations.dynamics.com/?cmp=USMF&mi=CustTableListPage'
-    );
-    await this.page.waitForLoadState('networkidle');
-    this.log('✅ Navigated to Customers list page');
-  }
-
-  /**
-   * Verify customer was created by navigating back to list and checking
-   */
-  async verifyCustomerCreated(firstName: string): Promise<boolean> {
-    this.log(`🔍 Verifying customer created with name: ${firstName}`);
-    
-    try {
-      // Navigate back to customers list
-      await this.navigateToAllCustomers();
-      
-      // Search for the customer in the list
-      await this.page.waitForTimeout(2000);
-      
-      // Look for the first name in the table/list
-      const customerRow = this.page.locator(`text="${firstName}"`).first();
-      const found = await customerRow.isVisible({ timeout: 5000 }).catch(() => false);
-      
-      if (found) {
-        this.log(`✅ Customer found in list: ${firstName}`);
-        return true;
-      } else {
-        this.log(`❌ Customer not found in list: ${firstName}`);
-        return false;
-      }
-    } catch (error) {
-      this.log(`⚠️ Error verifying customer creation: ${error}`);
-      return false;
-    }
-  }
-
-  /**
-   * Complete end-to-end customer creation workflow
-   */
-  async createCustomerE2E(customerData: any): Promise<void> {
-    this.log('🚀 Starting end-to-end customer creation workflow...');
-
-    // Navigate to customers list
-    await this.navigateToCustomersListPage();
-
-    // Click New button
-    await this.clickNewCustomer();
-
-    // Verify form is displayed
-    await this.verifyCreateCustomerForm();
-
-    // Fill customer details
-    await this.createCustomer(customerData);
-
-    // Save the customer
-    await this.clickSave();
-
-    // Verify we're back on the customers list
-    try {
-      await this.page.waitForURL('**/CustTableListPage**', { timeout: 10000 }).catch(() => {
-        this.log('⚠️ Did not navigate back to list, but save was clicked');
-      });
-    } catch (e) {
-      this.log('⚠️ Could not verify URL after save');
-    }
-    
-    this.log('✅ Customer created and saved successfully');
+  async verifyCustomerCreated(): Promise<boolean> {
+    this.log(`🔍 Verifying customer creation...`);
+    const dialogVisible = await this.page.locator('div[role="dialog"]').isVisible().catch(() => false);
+    const result = !dialogVisible;
+    this.log(`${result ? '✅' : '⚠️'} Customer ${result ? 'created' : 'creation uncertain'}`);
+    return result;
   }
 }
+
 

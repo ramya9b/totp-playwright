@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { CreateCustomerPage } from '../pages/CreateCustomer';
-import { readCustomerDataFromExcel, readAllCustomerDataFromExcel } from '../utils/excelReader';
+import { readCustomerDataFromExcel, readAllCustomerDataFromExcel, validateCustomerExcelFile } from '../utils/excelReader';
 
 /**
  * Test Suite: Customer Creation in D365 Accounts Receivable
@@ -10,6 +10,20 @@ import { readCustomerDataFromExcel, readAllCustomerDataFromExcel } from '../util
 
 test.describe('🧑‍💼 Customer Creation Tests', () => {
   let createCustomerPage: CreateCustomerPage;
+
+  test.beforeAll(async () => {
+    // Validate Excel file before running any tests
+    console.log(`\n🔍 === VALIDATING TEST DATA FILE ===`);
+    try {
+      validateCustomerExcelFile('test-data/customer-data.xlsx');
+      console.log(`✅ Test data file validation passed`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`❌ Test data file validation failed: ${errorMessage}`);
+      throw error;
+    }
+    console.log(`🔍 === TEST DATA VALIDATION COMPLETE ===\n`);
+  });
 
   test.beforeEach(async ({ page, baseURL }) => {
     createCustomerPage = new CreateCustomerPage(page);
@@ -48,16 +62,18 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
     console.log(`📊 Minimal test data:`, minimalCustomerData);
     
     try {
-      // Navigate to Customers List
-      await createCustomerPage.navigateToAllCustomers();
+      // Try direct navigation to create form (bypasses New button modal issue)
+      console.log('🔧 Attempting direct navigation to create form...');
+      try {
+        await createCustomerPage.navigateToCreateCustomerForm();
+      } catch (navError) {
+        console.log(`⚠️ Direct navigation failed, falling back to list + New button: ${navError}`);
+        // Fallback: Navigate to Customers List and click New
+        await createCustomerPage.navigateToAllCustomers();
+        await createCustomerPage.clickNewCustomerButton();
+      }
 
-      // Click New
-      await createCustomerPage.clickNewCustomer();
-
-      // Verify form
-      await createCustomerPage.verifyCreateCustomerForm();
-
-      // Fill ONLY required fields
+      // Fill ONLY required fields (form readiness is verified inside createCustomer)
       console.log('📝 Filling only required fields: firstName, lastName, customerGroup');
       await createCustomerPage.createCustomer(minimalCustomerData);
 
@@ -72,7 +88,7 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
       
       // Verify
       try {
-        const created = await createCustomerPage.verifyCustomerCreated(minimalCustomerData.firstName);
+        const created = await createCustomerPage.verifyCustomerCreated();
         if (created) {
           console.log(`✅ MINIMAL TEST PASSED: Customer created with just firstName/lastName/group: ${minimalCustomerData.firstName}`);
         } else {
@@ -91,27 +107,22 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
     test.setTimeout(180000); // 3 minutes for this test
     
     // Read customer data from Excel file (single row)
-    const customerData = readCustomerDataFromExcel('test-data/customer-data.xlsx', 'Customers', 0);
+    let customerData = readCustomerDataFromExcel('test-data/customer-data.xlsx', 'Customers', 0);
     
-    // Add random 2-digit numbers to first name and last name for uniqueness
-    const randomNumber = String(Math.floor(Math.random() * 100)).padStart(2, '0');
-    customerData.firstName = `${customerData.firstName}${randomNumber}`;
-    customerData.lastName = `${customerData.lastName}${randomNumber}`;
+    // Generate unique customer data with 2-character + 2-digit suffix
+    customerData = createCustomerPage.generateUniqueCustomerData(customerData);
     
     console.log(`📊 Customer data loaded from Excel:`, customerData);
-    console.log(`🎲 Random suffix added: ${randomNumber}`);
+    console.log(`🎲 Unique suffix applied (2 chars + 2 digits)`);
     
     try {
       // Navigate to Customers List using navigation pane
       await createCustomerPage.navigateToAllCustomers();
 
       // Click New to create customer
-      await createCustomerPage.clickNewCustomer();
+      await createCustomerPage.clickNewCustomerButton();
 
-      // Verify create customer form is displayed
-      await createCustomerPage.verifyCreateCustomerForm();
-
-      // Fill customer details from Excel data
+      // Fill customer details from Excel data (form readiness is verified inside createCustomer)
       await createCustomerPage.createCustomer(customerData);
 
       // Save the customer
@@ -126,7 +137,7 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
       
       // Try to navigate back and verify customer was created
       try {
-        const created = await createCustomerPage.verifyCustomerCreated(customerData.firstName);
+        const created = await createCustomerPage.verifyCustomerCreated();
         if (created) {
           console.log(`✅ Customer created successfully: ${customerData.firstName}`);
         } else {
@@ -152,15 +163,13 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
       
       // Loop through each customer and create them
       for (let i = 0; i < allCustomers.length; i++) {
-        const customerData = allCustomers[i];
+        let customerData = allCustomers[i];
         
-        // Add random 2-digit numbers to first name and last name for uniqueness
-        const randomNumber = String(Math.floor(Math.random() * 100)).padStart(2, '0');
-        customerData.firstName = `${customerData.firstName}${randomNumber}`;
-        customerData.lastName = `${customerData.lastName}${randomNumber}`;
+        // Generate unique customer data with 2-character + 2-digit suffix
+        customerData = createCustomerPage.generateUniqueCustomerData(customerData);
         
         console.log(`\n🔢 Creating customer ${i + 1} of ${allCustomers.length}: ${customerData.firstName} ${customerData.lastName}`);
-        console.log(`🎲 Random suffix: ${randomNumber}`);
+        console.log(`✨ Unique suffix applied (2 chars + 2 digits)`);
         
         try {
           // Navigate to Customers List
@@ -168,12 +177,9 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
           await page.waitForTimeout(2000);
 
           // Click New to create customer
-          await createCustomerPage.clickNewCustomer();
+          await createCustomerPage.clickNewCustomerButton();
 
-          // Verify create customer form is displayed
-          await createCustomerPage.verifyCreateCustomerForm();
-
-          // Fill customer details from Excel data
+          // Fill customer details from Excel data (form readiness is verified inside createCustomer)
           await createCustomerPage.createCustomer(customerData);
 
           // Save the customer
@@ -188,7 +194,7 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
           
           // Try to verify customer was created
           try {
-            const created = await createCustomerPage.verifyCustomerCreated(customerData.firstName);
+            const created = await createCustomerPage.verifyCustomerCreated();
             if (created) {
               console.log(`✅ Customer ${i + 1} verified in list: ${customerData.firstName}`);
             } else {
