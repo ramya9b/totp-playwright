@@ -46,67 +46,56 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
   });
 
   test('🔍 DEBUG: Create customer with minimal fields (no delivery)', async ({ page }) => {
-    test.setTimeout(180000); // 3 minutes for this test
-    
-    // Create test data with ONLY required fields
-    const minimalCustomerData = {
-      firstName: `TestCustomer${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
-      lastNamePrefix: '',
-      lastName: `Test${String(Math.floor(Math.random() * 100)).padStart(2, '0')}`,
-      customerGroup: '10',
-      deliveryTerms: '', // SKIP - leave empty
-      deliveryMode: '', // SKIP - leave empty
-      zipCode: ''
-    };
-    
-    console.log(`📊 Minimal test data:`, minimalCustomerData);
-    
-    try {
-      // Try direct navigation to create form (bypasses New button modal issue)
-      console.log('🔧 Attempting direct navigation to create form...');
-      try {
-        await createCustomerPage.navigateToCreateCustomerForm();
-      } catch (navError) {
-        console.log(`⚠️ Direct navigation failed, falling back to list + New button: ${navError}`);
-        // Fallback: Navigate to Customers List and click New
-        await createCustomerPage.navigateToAllCustomers();
-        await createCustomerPage.clickNewCustomerButton();
-      }
+  test.setTimeout(180000);
 
-      // Fill ONLY required fields (form readiness is verified inside createCustomer)
-      console.log('📝 Filling only required fields: firstName, lastName, customerGroup');
-      await createCustomerPage.createCustomer(minimalCustomerData);
+  const minimalCustomerData = {
+    typeDropdown: 'Person',
+    firstName: `TestCustomer${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+    lastNamePrefix: '',
+    lastName: `Test${String(Math.floor(Math.random() * 100)).padStart(2, '0')}`,
+    customerGroup: '10',
+    deliveryTerms: '',
+    deliveryMode: '',
+    zipCode: ''
+  };
 
-      // Save
-      console.log('💾 Attempting to save...');
-      await createCustomerPage.clickSave();
-      
-      console.log('✅ Save completed');
-      
-      // Wait for D365 to process
-      await page.waitForTimeout(3000);
-      
-      // Verify
-      try {
-        const created = await createCustomerPage.verifyCustomerCreated();
-        if (created) {
-          console.log(`✅ MINIMAL TEST PASSED: Customer created with just firstName/lastName/group: ${minimalCustomerData.firstName}`);
-        } else {
-          console.log(`⚠️ MINIMAL TEST: Could not find customer in list (may still be created)`);
-        }
-      } catch (e) {
-        console.log(`⚠️ Verification failed: ${e}`);
-      }
-    } catch (error) {
-      console.log(`❌ Minimal test failed: ${error}`);
-      throw error;
+  console.log(`📊 Minimal test data:`, minimalCustomerData);
+
+  try {
+    // Always go via Customers List
+    await createCustomerPage.navigateToAllCustomers();
+
+    // Always click New
+    await createCustomerPage.clickNewCustomerButton();
+
+    // Fill required fields
+    console.log('📝 Filling only required fields...');
+    await createCustomerPage.createCustomer(minimalCustomerData);
+
+    // Save
+    console.log('💾 Attempting to save...');
+    await createCustomerPage.clickSave();
+    console.log('✅ Save completed');
+
+    await page.waitForTimeout(3000);
+
+    // Verify
+    const created = await createCustomerPage.verifyCustomerCreated();
+    if (created) {
+      console.log(`✅ MINIMAL TEST PASSED: Customer created: ${minimalCustomerData.firstName}`);
+    } else {
+      console.log(`⚠️ MINIMAL TEST: Could not verify customer creation`);
     }
-  });
+  } catch (error) {
+    console.log(`❌ Minimal test failed: ${error}`);
+    throw error;
+  }
+});
 
   test('Create single customer with basic details', async ({ page }) => {
     test.setTimeout(180000); // 3 minutes for this test
     
-    // Read customer data from Excel file (single row)
+    // Read customer data from Excel file (single row) - already has all required properties
     let customerData = readCustomerDataFromExcel('test-data/customer-data.xlsx', 'Customers', 0);
     
     // Generate unique customer data with 2-character + 2-digit suffix
@@ -157,7 +146,7 @@ test.describe('🧑‍💼 Customer Creation Tests', () => {
     test.setTimeout(600000); // 10 minutes for multiple customers
     
     try {
-      // Read ALL customer data from Excel file
+      // Read ALL customer data from Excel file (already has all required properties)
       const allCustomers = readAllCustomerDataFromExcel('test-data/customer-data.xlsx', 'Customers');
       console.log(`📊 Found ${allCustomers.length} customers in Excel`);
       

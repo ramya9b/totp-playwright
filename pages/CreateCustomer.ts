@@ -1,6 +1,6 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
-
+import { expect } from '@playwright/test';
 /**
  * CreateCustomer Page Object Model - Simplified version
  * Implements basic customer creation workflow for D365 F&O
@@ -10,6 +10,7 @@ export class CreateCustomerPage extends BasePage {
   private newButton: Locator;
   private saveButton: Locator;
   private cancelButton: Locator;
+  private typeDropdown: Locator;
   private firstNameField: Locator;
   private lastNameField: Locator;
   private customerGroupField: Locator;
@@ -26,7 +27,7 @@ export class CreateCustomerPage extends BasePage {
     super(page);
     
     // New button - look for span containing "New" in toolbar area
-    this.newButton = page.locator(`//span[text()='New' and contains(@id, 'NewCustomer')]`).first();
+    this.newButton = page.getByRole('button', { name: 'New' });
    
     // Save button
     this.saveButton = page.locator('button[id*="OKButton"], button:has-text("Save")').first();
@@ -35,6 +36,8 @@ export class CreateCustomerPage extends BasePage {
     this.cancelButton = page.locator('button:has-text("Cancel")').first();
     
     // Form fields - use simple selectors that work across D365 variations
+    //this.typeDropdown = page.locator('select[name="Type"]');
+    this.typeDropdown = page.locator('input[name="partyTypeComboBox"]');
     this.firstNameField = page.locator('input[name="Name_FirstName"]');
     this.lastNameField = page.locator('input[name="Name_LastName"]');
     this.customerGroupField = page.locator('input[name="DynamicDetail_CustGroup"]');;
@@ -94,32 +97,25 @@ export class CreateCustomerPage extends BasePage {
   this.log('🔧 Clicking New Customer button...');
 
   try {
-    // 1. Wait for the button from the constructor to be visible
-    await this.newButton.waitFor({ state: 'visible', timeout: 10000 });
+    // Wait until the button is visible
+    await this.newButton.waitFor({ state: 'visible', timeout: 20000 });
 
-    // 2. Use a 'force' click. D365 often has "gutters" or invisible divs 
-    // that Playwright thinks are blocking the click.
-    await this.newButton.click({ force: true });
+    // Click the button
+    await this.newButton.click();
     this.log('✅ New button clicked');
 
-    // 3. Verification: Wait for the slide-out form's first field to appear
-    // We use the specific 'name' from your HTML snippet
-    await this.page.locator('input[name="Name_FirstName"]').waitFor({ 
-      state: 'visible', 
-      timeout: 15000 
-    });
-    
-    this.log('✅ Creation form is ready for input');
-    } catch (error) {
+    // Wait for Type dropdown to appear
+    await this.page.locator('input[name="partyTypeComboBox"]').waitFor({ state: 'visible', timeout: 30000 });
+    this.log('✅ Type dropdown is visible, form is ready');
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    this.log(`❌ Failed to click New button or form did not open: ${errorMessage}`);
-    
-    // DEBUG FALLBACK: If the button click failed, try the keyboard shortcut (Alt+N)
+    this.log(`❌ Failed to click New button: ${errorMessage}`);
+
+    // Fallback: try Alt+N shortcut
     this.log('⌨️ Attempting Alt+N shortcut fallback...');
     await this.page.keyboard.press('Alt+n');
-    throw error;
   }
-  }
+}
 
   /**
    * Generate a unique suffix with 2 characters + 2 digits for customer names
@@ -143,19 +139,23 @@ export class CreateCustomerPage extends BasePage {
    * Example: "John" -> "JohnAB45"
    */
   generateUniqueCustomerData(customerData: {
+    typeDropdown: string;
     firstName: string;
+    lastNamePrefix: string;
     lastName: string;
-    customerGroup?: string;
-    deliveryTerms?: string;
-    deliveryMode?: string;
-    zipCode?: string;
+    customerGroup: string;
+    deliveryTerms: string;
+    deliveryMode: string;
+    zipCode: string;
   }): {
+    typeDropdown: string;
     firstName: string;
+    lastNamePrefix: string;
     lastName: string;
-    customerGroup?: string;
-    deliveryTerms?: string;
-    deliveryMode?: string;
-    zipCode?: string;
+    customerGroup: string;
+    deliveryTerms: string;
+    deliveryMode: string;
+    zipCode: string;
   } {
     const suffix = this.generateUniqueSuffix();
     return {
@@ -168,42 +168,53 @@ export class CreateCustomerPage extends BasePage {
   /**
    * Fill in customer details and create the record
    */
-  async createCustomer(customerData: {
-    firstName: string;
-    lastName: string;
-    customerGroup?: string;
-    deliveryTerms?: string;
-    deliveryMode?: string;
-    zipCode?: string;
-  }): Promise<void> {
-    this.log('📝 Creating customer record...');
-    
-    if (customerData.firstName) {
-      await this.fillField('First Name', this.firstNameField, customerData.firstName);
-    }
+ async createCustomer(customerData: {
+  typeDropdown: string;
+  firstName: string;
+  lastName: string;
+  customerGroup?: string;
+  deliveryTerms?: string;
+  deliveryMode?: string;
+  zipCode?: string;
+}): Promise<void> {
+  this.log('📝 Creating customer record...');
 
-    if (customerData.lastName) {
-      await this.fillField('Last Name', this.lastNameField, customerData.lastName);
-    }
+  if (customerData.typeDropdown) {
+    await this.typeDropdown.click();
+    await this.page.getByRole('option', { name: customerData.typeDropdown }).click();
+    this.log(`✅ Type dropdown set to: ${customerData.typeDropdown}`);
 
-    if (customerData.customerGroup) {
-      await this.fillField('Customer Group', this.customerGroupField, customerData.customerGroup);
+    if (customerData.typeDropdown === 'Person') {
+      await this.firstNameField.waitFor({ state: 'visible', timeout: 15000 });
     }
-
-    if (customerData.deliveryTerms) {
-      await this.fillField('Delivery Terms', this.deliveryTermsField, customerData.deliveryTerms);
-    }
-
-    if (customerData.deliveryMode) {
-      await this.fillField('Delivery Mode', this.deliveryModeField, customerData.deliveryMode);
-    }
-
-    if (customerData.zipCode) {
-      await this.fillField('ZIP Code', this.zipCodeField, customerData.zipCode);
-    }
-
-    this.log('✅ All customer details filled');
   }
+
+  if (customerData.firstName) {
+    await this.fillField('First Name', this.firstNameField, customerData.firstName);
+  }
+
+  if (customerData.lastName) {
+    await this.fillField('Last Name', this.lastNameField, customerData.lastName);
+  }
+
+  if (customerData.customerGroup) {
+    await this.fillField('Customer Group', this.customerGroupField, customerData.customerGroup);
+  }
+
+  if (customerData.deliveryTerms) {
+    await this.fillField('Delivery Terms', this.deliveryTermsField, customerData.deliveryTerms);
+  }
+
+  if (customerData.deliveryMode) {
+    await this.fillField('Delivery Mode', this.deliveryModeField, customerData.deliveryMode);
+  }
+
+  if (customerData.zipCode) {
+    await this.fillField('ZIP Code', this.zipCodeField, customerData.zipCode);
+  }
+
+  this.log('✅ All customer details filled');
+}
 
   /**
    * Helper method to fill a single field
