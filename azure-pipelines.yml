@@ -296,32 +296,60 @@ stages:
             displayName: '📊 Upload Test Report (CSV, JSON, PNG, Notebook)'
 
           # Commit test results back to repository (Auto-sync with notebook)
-          - script: |
-              git config --global user.email "azure-pipelines@example.com"
-              git config --global user.name "Azure Pipelines"
-              
-              # Check if there are changes to commit
-              git status --porcelain
-              
-              # Add test result files if they exist
-              if [ -f "test_results.csv" ] || [ -f "test_results.json" ] || [ -f "allure-results/*" ]; then
-                echo "📝 Committing test results back to repository..."
-                git add test_results.csv test_results.json test_results_visualization.png test_cases_detailed.csv allure-results/ 2>/dev/null || true
-                
-                # Only commit if there are staged changes
-                if git diff --cached --quiet; then
-                  echo "✅ No changes to commit"
-                else
-                  git commit -m "🤖 Auto: Update test results from pipeline run #$(Build.BuildId)"
-                  git push origin HEAD:$(Build.SourceBranch) 2>&1 || true
-                  echo "✅ Test results committed and pushed"
-                fi
-              else
-                echo "⚠️ No test results to commit"
-              fi
+          - task: PowerShell@2
             displayName: '🔄 Auto-sync Test Results to Repository'
-            continueOnError: true
             condition: succeededOrFailed()
+            continueOnError: true
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "🔄 Auto-syncing test results to repository..." -ForegroundColor Cyan
+                
+                # Configure git
+                git config --global user.email "azure-pipelines@example.com"
+                git config --global user.name "Azure Pipelines"
+                
+                # Check for changes
+                Write-Host "📋 Current git status:" -ForegroundColor Yellow
+                git status --porcelain
+                
+                # Check if test result files exist
+                $hasChanges = $false
+                if ((Test-Path "test_results.csv") -or (Test-Path "test_results.json") -or (Test-Path "test_results_visualization.png") -or (Test-Path "test_cases_detailed.csv")) {
+                    $hasChanges = $true
+                }
+                
+                # Check if allure-results has files
+                if (Test-Path "allure-results") {
+                    $allureFiles = @(Get-ChildItem -Path "allure-results" -Recurse -File -ErrorAction SilentlyContinue)
+                    if ($allureFiles.Count -gt 0) {
+                        $hasChanges = $true
+                    }
+                }
+                
+                if ($hasChanges) {
+                    Write-Host "📝 Found test results to commit..." -ForegroundColor Green
+                    git add test_results.csv test_results.json test_results_visualization.png test_cases_detailed.csv 2>$null
+                    git add allure-results/ 2>$null
+                    
+                    $status = git status --porcelain
+                    if (-not $status) {
+                        Write-Host "✅ No changes to commit" -ForegroundColor Green
+                    } else {
+                        Write-Host "📝 Committing changes..." -ForegroundColor Cyan
+                        git commit -m "🤖 Auto: Update test results from pipeline run #$(Build.BuildId)"
+                        
+                        Write-Host "🚀 Pushing to repository..." -ForegroundColor Cyan
+                        git push origin HEAD:$(Build.SourceBranch) 2>&1
+                        if ($LASTEXITCODE -eq 0) {
+                            Write-Host "✅ Test results committed and pushed successfully!" -ForegroundColor Green
+                        } else {
+                            Write-Host "⚠️ Push failed but continuing..." -ForegroundColor Yellow
+                        }
+                    }
+                } else {
+                    Write-Host "⚠️ No test results to commit" -ForegroundColor Yellow
+                }
 
   # Generate Allure Report
   - stage: Report
