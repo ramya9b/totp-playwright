@@ -19,7 +19,9 @@
     "allure:generate": "allure generate ./allure-results --clean",
     "allure:open": "allure open ./allure-report",
     "open:visual-report": "start visual-report.html",
-    "open:playwright-report": "start playwright-report/visual-report.html"
+    "open:playwright-report": "start playwright-report/visual-report.html",
+    "test:with-report": "playwright test && python -m jupyter nbconvert --to notebook --execute test_results_report.ipynb",
+    "test:sc03": "playwright test SC_03_createcustomer.spec.ts && python -m jupyter nbconvert --to notebook --execute test_results_report.ipynb"
   },
   "keywords": [],
   "author": "",

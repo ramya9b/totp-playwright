@@ -1,0 +1,127 @@
+trigger:
+  - main
+  - develop
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  pythonVersion: '3.13'
+  nodeVersion: '18.x'
+
+stages:
+  - stage: Setup
+    displayName: 'Setup Environment'
+    jobs:
+      - job: SetupJob
+        displayName: 'Setup Node and Python'
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: $(nodeVersion)
+            displayName: 'Install Node.js'
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(pythonVersion)
+              addToPath: true
+            displayName: 'Install Python'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install ipykernel pandas matplotlib numpy jupyter
+            displayName: 'Install Python dependencies'
+
+          - script: npm ci
+            displayName: 'Install npm dependencies'
+
+  - stage: Test
+    displayName: 'Run Tests'
+    dependsOn: Setup
+    jobs:
+      - job: PlaywrightTests
+        displayName: 'Run Playwright Tests'
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: $(nodeVersion)
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(pythonVersion)
+              addToPath: true
+
+          - script: npm ci
+            displayName: 'Install dependencies'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install ipykernel pandas matplotlib numpy jupyter
+            displayName: 'Install Python dependencies'
+
+          - script: |
+              npx playwright install --with-deps
+            displayName: 'Install Playwright browsers'
+
+          - script: npm run test:sc03
+            displayName: 'Run SC_03 Tests with Report Generation'
+            continueOnError: true
+
+  - stage: PublishResults
+    displayName: 'Publish Test Results'
+    dependsOn: Test
+    condition: always()
+    jobs:
+      - job: PublishJob
+        displayName: 'Publish Results to Azure Pipelines'
+        steps:
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/test-results/junit.xml'
+              mergeTestResults: true
+              testRunTitle: 'Playwright Test Results'
+            displayName: 'Publish Test Results'
+            condition: succeededOrFailed()
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'test_results_report.ipynb'
+              ArtifactName: 'test-report-notebook'
+            displayName: 'Publish Test Report Notebook'
+            condition: always()
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'test_results.csv'
+              ArtifactName: 'test-results-csv'
+            displayName: 'Publish Test Results CSV'
+            condition: always()
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'test_results.json'
+              ArtifactName: 'test-results-json'
+            displayName: 'Publish Test Results JSON'
+            condition: always()
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'test_results_visualization.png'
+              ArtifactName: 'test-results-visualization'
+            displayName: 'Publish Test Visualization'
+            condition: always()
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'playwright-report'
+              ArtifactName: 'playwright-html-report'
+            displayName: 'Publish Playwright HTML Report'
+            condition: always()
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'test-results'
+              ArtifactName: 'test-screenshots-videos'
+            displayName: 'Publish Test Screenshots and Videos'
+            condition: always()
