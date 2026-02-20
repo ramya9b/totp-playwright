@@ -295,6 +295,34 @@ stages:
             continueOnError: true
             displayName: '📊 Upload Test Report (CSV, JSON, PNG, Notebook)'
 
+          # Commit test results back to repository (Auto-sync with notebook)
+          - script: |
+              git config --global user.email "azure-pipelines@example.com"
+              git config --global user.name "Azure Pipelines"
+              
+              # Check if there are changes to commit
+              git status --porcelain
+              
+              # Add test result files if they exist
+              if [ -f "test_results.csv" ] || [ -f "test_results.json" ] || [ -f "allure-results/*" ]; then
+                echo "📝 Committing test results back to repository..."
+                git add test_results.csv test_results.json test_results_visualization.png test_cases_detailed.csv allure-results/ 2>/dev/null || true
+                
+                # Only commit if there are staged changes
+                if git diff --cached --quiet; then
+                  echo "✅ No changes to commit"
+                else
+                  git commit -m "🤖 Auto: Update test results from pipeline run #$(Build.BuildId)"
+                  git push origin HEAD:$(Build.SourceBranch) 2>&1 || true
+                  echo "✅ Test results committed and pushed"
+                fi
+              else
+                echo "⚠️ No test results to commit"
+              fi
+            displayName: '🔄 Auto-sync Test Results to Repository'
+            continueOnError: true
+            condition: succeededOrFailed()
+
   # Generate Allure Report
   - stage: Report
     displayName: 'Generate Allure Report'
