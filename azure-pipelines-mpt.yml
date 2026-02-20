@@ -323,72 +323,31 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                # Read test results from JSON file
                 if (Test-Path 'test_results.json') {
                     $json = Get-Content 'test_results.json' | ConvertFrom-Json
                     $summary = $json.summary
-                    
-                    $passedTests = $summary.passed_tests
-                    $failedTests = $summary.failed_tests
-                    $passRate = $summary.pass_rate
-                    $totalTime = [math]::Round($summary.total_execution_time_ms / 1000, 2)
-                    
-                    # Determine status color and icon
-                    if ($failedTests -eq 0) {
-                        $statusColor = "28a745"  # Green
-                        $statusIcon = "✅"
-                    } else {
-                        $statusColor = "dc3545"  # Red
-                        $statusIcon = "❌"
-                    }
-                    
-                    # Build Teams webhook message
                     $webhook = $env:TEAMS_WEBHOOK
                     
                     if ($webhook) {
+                        $statusColor = if ($summary.failed_tests -eq 0) { "28a745" } else { "dc3545" }
+                        $statusIcon = if ($summary.failed_tests -eq 0) { "✅" } else { "❌" }
+                        $totalTime = [math]::Round($summary.total_execution_time_ms / 1000, 2)
+                        
                         $body = @{
-                            "@type"    = "MessageCard"
+                            "@type" = "MessageCard"
                             "@context" = "https://schema.org/extensions"
-                            "summary"  = "Playwright Test Results - Build #$(Build.BuildId)"
+                            "summary" = "Playwright Test Results - Build #$(Build.BuildId)"
                             "themeColor" = $statusColor
                             "sections" = @(@{
                                 "activityTitle" = "$statusIcon Playwright Test Results - Build #$(Build.BuildId)"
-                                "activitySubtitle" = "$(Build.Repository.Name) - $(Build.SourceBranch)"
+                                "activitySubtitle" = "$(Build.Repository.Name)"
                                 "facts" = @(
-                                    @{
-                                        "name" = "Total Tests"
-                                        "value" = "$($summary.total_tests)"
-                                    },
-                                    @{
-                                        "name" = "Passed"
-                                        "value" = "✅ $passedTests"
-                                    },
-                                    @{
-                                        "name" = "Failed"
-                                        "value" = "❌ $failedTests"
-                                    },
-                                    @{
-                                        "name" = "Pass Rate"
-                                        "value" = "$([math]::Round($passRate, 2))%"
-                                    },
-                                    @{
-                                        "name" = "Execution Time"
-                                        "value" = "${totalTime}s"
-                                    },
-                                    @{
-                                        "name" = "Build"
-                                        "value" = "<a href='$(Build.BuildUri)'>$(Build.BuildId)</a>"
-                                    }
+                                    @{ "name" = "Total Tests"; "value" = "$($summary.total_tests)" },
+                                    @{ "name" = "✅ Passed"; "value" = "$($summary.passed_tests)" },
+                                    @{ "name" = "❌ Failed"; "value" = "$($summary.failed_tests)" },
+                                    @{ "name" = "Pass Rate"; "value" = "$([math]::Round($summary.pass_rate, 2))%" },
+                                    @{ "name" = "Execution Time"; "value" = "${totalTime}s" }
                                 )
-                                "markdown" = $true
-                            })
-                            "potentialAction" = @(@{
-                                "@type" = "OpenUri"
-                                "name" = "View Pipeline Run"
-                                "targets" = @(@{
-                                    "os" = "default"
-                                    "uri" = "$(Build.BuildUri)"
-                                })
                             })
                         } | ConvertTo-Json -Depth 10
                         
@@ -396,10 +355,8 @@ stages:
                         Invoke-RestMethod -Uri $webhook -Method Post -ContentType "application/json" -Body $body
                         Write-Host "✅ Teams notification sent!" -ForegroundColor Green
                     } else {
-                        Write-Host "⚠️ TEAMS_WEBHOOK not configured, skipping notification" -ForegroundColor Yellow
+                        Write-Host "⚠️ TEAMS_WEBHOOK not configured" -ForegroundColor Yellow
                     }
-                } else {
-                    Write-Host "⚠️ test_results.json not found" -ForegroundColor Yellow
                 }
             env:
               TEAMS_WEBHOOK: $(TEAMS_WEBHOOK)
