@@ -75,6 +75,33 @@ export class CreateCustomerPage extends BasePage {
   }
 
   /**
+   * Wait for D365 blocking overlays to disappear
+   */
+  private async waitForPageInteractive(timeout: number = 30000): Promise<void> {
+    try {
+      // Wait for blocking divs to become hidden or disappear
+      await this.page.waitForFunction(
+        () => {
+          const blockingDiv = document.getElementById('ShellBlockingDiv');
+          const processingDiv = document.getElementById('ShellProcessingDiv');
+          
+          // Page is interactive when both divs are hidden or missing
+          const blockingHidden = !blockingDiv || blockingDiv.style.display === 'none' || blockingDiv.offsetHeight === 0;
+          const processingHidden = !processingDiv || processingDiv.style.display === 'none' || processingDiv.offsetHeight === 0;
+          
+          return blockingHidden && processingHidden;
+        },
+        { timeout }
+      );
+      
+      this.log('✅ Page is interactive (blocking overlays cleared)');
+    } catch (error) {
+      this.log(`⚠️ Timeout waiting for page to be interactive: ${error}`);
+      // Continue anyway - sometimes the overlays are very quick
+    }
+  }
+
+  /**
    * Navigate to the All Customers list page
    */
   async navigateToAllCustomers(page?: string): Promise<void> {
@@ -86,8 +113,9 @@ export class CreateCustomerPage extends BasePage {
     await this.page.goto(customersUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
     this.log(`✅ Navigated to Customer List`);
     
-    // Wait for page to settle
-    await this.page.waitForTimeout(2000);
+    // Wait for page to settle and blocking divs to clear
+    await this.page.waitForTimeout(1000);
+    await this.waitForPageInteractive(15000);
   }
 
   /**
@@ -97,6 +125,9 @@ export class CreateCustomerPage extends BasePage {
   this.log('🔧 Clicking New Customer button...');
 
   try {
+    // Wait for page to be interactive before clicking
+    await this.waitForPageInteractive(15000);
+    
     // Wait until the button is visible
     await this.newButton.waitFor({ state: 'visible', timeout: 20000 });
 
@@ -104,6 +135,10 @@ export class CreateCustomerPage extends BasePage {
     await this.newButton.click();
     this.log('✅ New button clicked');
 
+    // Wait for form to appear and page to be interactive
+    await this.page.waitForTimeout(500);
+    await this.waitForPageInteractive(15000);
+    
     // Wait for Type dropdown to appear
     await this.page.locator('input[name="partyTypeComboBox"]').waitFor({ state: 'visible', timeout: 30000 });
     this.log('✅ Type dropdown is visible, form is ready');
@@ -179,6 +214,9 @@ export class CreateCustomerPage extends BasePage {
 }): Promise<void> {
   this.log('📝 Creating customer record...');
 
+  // Wait for page to be fully interactive before filling form
+  await this.waitForPageInteractive(15000);
+
   if (customerData.typeDropdown) {
     await this.typeDropdown.click();
     await this.page.getByRole('option', { name: customerData.typeDropdown }).click();
@@ -235,6 +273,10 @@ export class CreateCustomerPage extends BasePage {
    */
   async saveCustomer(): Promise<void> {
     this.log('💾 Saving customer record...');
+    
+    // Ensure page is interactive before attempting keyboard action
+    await this.waitForPageInteractive(10000);
+    
     await this.page.keyboard.press('Alt+Enter');
     await this.page.waitForTimeout(3000);
     this.log('✅ Save command sent via Alt+Enter');
