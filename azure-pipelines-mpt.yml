@@ -45,6 +45,7 @@ pool:
 
 variables:
   # Using Access Token Authentication (enabled in workspace)
+  - group: PlaywrightTestsConfig-Teams
   - group: Playwright-Testing-Secrets
   
   - name: PLAYWRIGHT_SERVICE_URL

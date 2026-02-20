@@ -23,8 +23,13 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  pythonVersion: '3.13'
-  nodeVersion: '20.x'
+  - group: PlaywrightTestsConfig-Teams
+  - group: Playwright-Testing-Secrets
+  
+  - name: pythonVersion
+    value: '3.13'
+  - name: nodeVersion
+    value: '20.x'
 
 stages:
   - stage: Test
