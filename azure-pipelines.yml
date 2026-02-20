@@ -377,12 +377,28 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                if (Test-Path 'test_results.json') {
-                    $json = Get-Content 'test_results.json' | ConvertFrom-Json
-                    $summary = $json.summary
-                    $webhook = $env:TEAMS_WEBHOOK
-                    
-                    if ($webhook) {
+                try {
+                    if (Test-Path 'test_results.json') {
+                        $json = Get-Content 'test_results.json' | ConvertFrom-Json
+                        $summary = $json.summary
+                        $webhook = $env:TEAMS_WEBHOOK
+                        
+                        if (-not $webhook -or $webhook -eq '$(TEAMS_WEBHOOK)') {
+                            Write-Host "⚠️ TEAMS_WEBHOOK not configured in variable group" -ForegroundColor Yellow
+                            Write-Host "   To enable notifications:" -ForegroundColor Gray
+                            Write-Host "   1. Go to Pipelines → Library → Variable groups" -ForegroundColor Gray
+                            Write-Host "   2. Create 'PlaywrightTestsConfig' group" -ForegroundColor Gray
+                            Write-Host "   3. Add TEAMS_WEBHOOK secret variable with your Teams webhook URL" -ForegroundColor Gray
+                            Write-Host "   4. Link group to pipeline" -ForegroundColor Gray
+                            exit 0
+                        }
+                        
+                        if (-not ($webhook -match '^https://outlook\.webhook\.office')) {
+                            Write-Host "❌ Invalid Teams webhook URL format" -ForegroundColor Red
+                            Write-Host "   Expected: https://outlook.webhook.office.com/..." -ForegroundColor Gray
+                            exit 1
+                        }
+                        
                         $statusColor = if ($summary.failed_tests -eq 0) { "28a745" } else { "dc3545" }
                         $statusIcon = if ($summary.failed_tests -eq 0) { "✅" } else { "❌" }
                         $totalTime = [math]::Round($summary.total_execution_time_ms / 1000, 2)
@@ -406,11 +422,14 @@ stages:
                         } | ConvertTo-Json -Depth 10
                         
                         Write-Host "📢 Sending Teams notification..." -ForegroundColor Cyan
-                        Invoke-RestMethod -Uri $webhook -Method Post -ContentType "application/json" -Body $body
+                        $response = Invoke-RestMethod -Uri $webhook -Method Post -ContentType 'application/json' -Body $body -ErrorAction Stop
                         Write-Host "✅ Teams notification sent!" -ForegroundColor Green
                     } else {
-                        Write-Host "⚠️ TEAMS_WEBHOOK not configured" -ForegroundColor Yellow
+                        Write-Host "⚠️ test_results.json not found" -ForegroundColor Yellow
                     }
+                } catch {
+                    Write-Host "❌ Error sending Teams notification: $_" -ForegroundColor Red
+                    exit 1
                 }
             env:
               TEAMS_WEBHOOK: $(TEAMS_WEBHOOK)
