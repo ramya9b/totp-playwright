@@ -26,8 +26,8 @@ export class CreateCustomerPage extends BasePage {
   constructor(page: Page) {
     super(page);
     
-    // New button - look for span containing "New" in toolbar area
-    this.newButton = page.getByRole('button', { name: 'New' });
+    // New button - use specific name attribute to avoid strict mode violation
+    this.newButton = page.locator('button[name="NewCustomer"]');
    
     // Save button
     this.saveButton = page.locator('button[id*="OKButton"], button:has-text("Save")').first();

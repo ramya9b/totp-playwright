@@ -28,7 +28,7 @@ export class CreateCustomer {
    * Click the New button to create a new customer
    */
   async clickNewButton(): Promise<void> {
-    await this.page.getByRole('button', { name: ' New' }).click();
+    await this.page.locator('button[name="NewCustomer"]').click();
     await this.page.waitForLoadState('networkidle');
   }
 
