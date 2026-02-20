@@ -246,14 +246,26 @@ stages:
             displayName: '🔄 Auto-sync Test Results to Repository'
             condition: succeededOrFailed()
             continueOnError: true
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
             inputs:
               targetType: 'inline'
               script: |
                 Write-Host "🔄 Auto-syncing test results to repository..." -ForegroundColor Cyan
                 
-                # Configure git
+                # Configure git authentication with System.AccessToken
                 git config --global user.email "azure-pipelines@example.com"
                 git config --global user.name "Azure Pipelines"
+                
+                # Set up git credentials for Azure DevOps
+                $token = $env:SYSTEM_ACCESSTOKEN
+                if ($token) {
+                    $encodedToken = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$token"))
+                    git config --global http.extraheader "Authorization: Basic $encodedToken"
+                    Write-Host "✅ Git authentication configured" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠️ System.AccessToken not available, push may fail" -ForegroundColor Yellow
+                }
                 
                 # Check for changes
                 Write-Host "📋 Current git status:" -ForegroundColor Yellow
