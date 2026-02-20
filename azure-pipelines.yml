@@ -89,6 +89,11 @@ stages:
         timeoutInMinutes: 60
         
         steps:
+          # Checkout with full history for git operations
+          - checkout: self
+            fetchDepth: 0
+            persistCredentials: true
+          
           # Download authentication session file
           - task: DownloadSecureFile@1
             name: d365AuthFile
@@ -300,26 +305,15 @@ stages:
             displayName: '🔄 Auto-sync Test Results to Repository'
             condition: succeededOrFailed()
             continueOnError: true
-            env:
-              SYSTEM_ACCESSTOKEN: $(System.AccessToken)
             inputs:
               targetType: 'inline'
               script: |
                 Write-Host "🔄 Auto-syncing test results to repository..." -ForegroundColor Cyan
                 
-                # Configure git authentication with System.AccessToken
+                # Configure git
                 git config --global user.email "azure-pipelines@example.com"
-                git config --global user.name "Azure Pipelines"
-                
-                # Set up git credentials for Azure DevOps
-                $token = $env:SYSTEM_ACCESSTOKEN
-                if ($token) {
-                    $encodedToken = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$token"))
-                    git config --global http.extraheader "Authorization: Basic $encodedToken"
-                    Write-Host "✅ Git authentication configured" -ForegroundColor Green
-                } else {
-                    Write-Host "⚠️ System.AccessToken not available, push may fail" -ForegroundColor Yellow
-                }
+                git config --global user.name "Azure Pipelines Bot"
+                git config --global core.longpaths true
                 
                 # Check for changes
                 Write-Host "📋 Current git status:" -ForegroundColor Yellow
@@ -352,11 +346,18 @@ stages:
                         git commit -m "🤖 Auto: Update test results from pipeline run #$(Build.BuildId)"
                         
                         Write-Host "🚀 Pushing to repository..." -ForegroundColor Cyan
-                        git push origin HEAD:$(Build.SourceBranch) 2>&1
+                        Write-Host "   Remote URL: $(Build.Repository.Uri)" -ForegroundColor Gray
+                        Write-Host "   Branch: $(Build.SourceBranch)" -ForegroundColor Gray
+                        
+                        # Use git credential provider that's already configured by checkout
+                        git push origin HEAD:$(Build.SourceBranch)
+                        
                         if ($LASTEXITCODE -eq 0) {
                             Write-Host "✅ Test results committed and pushed successfully!" -ForegroundColor Green
                         } else {
-                            Write-Host "⚠️ Push failed but continuing..." -ForegroundColor Yellow
+                            Write-Host "⚠️ Push failed with exit code $LASTEXITCODE" -ForegroundColor Yellow
+                            Write-Host "Git remote info:" -ForegroundColor Gray
+                            git remote -v
                         }
                     }
                 } else {
