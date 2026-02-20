@@ -115,7 +115,7 @@ export class CreateCustomerPage extends BasePage {
     
     // Wait for page to settle and blocking divs to clear
     await this.page.waitForTimeout(1000);
-    await this.waitForPageInteractive(15000);
+    await this.waitForPageInteractive(25000);
   }
 
   /**
@@ -126,7 +126,7 @@ export class CreateCustomerPage extends BasePage {
 
   try {
     // Wait for page to be interactive before clicking
-    await this.waitForPageInteractive(15000);
+    await this.waitForPageInteractive(25000);
     
     // Wait until the button is visible
     await this.newButton.waitFor({ state: 'visible', timeout: 20000 });
@@ -137,7 +137,7 @@ export class CreateCustomerPage extends BasePage {
 
     // Wait for form to appear and page to be interactive
     await this.page.waitForTimeout(500);
-    await this.waitForPageInteractive(15000);
+    await this.waitForPageInteractive(25000);
     
     // Wait for Type dropdown to appear
     await this.page.locator('input[name="partyTypeComboBox"]').waitFor({ state: 'visible', timeout: 30000 });
@@ -215,7 +215,7 @@ export class CreateCustomerPage extends BasePage {
   this.log('📝 Creating customer record...');
 
   // Wait for page to be fully interactive before filling form
-  await this.waitForPageInteractive(15000);
+  await this.waitForPageInteractive(25000);
 
   if (customerData.typeDropdown) {
     await this.typeDropdown.click();
@@ -275,7 +275,7 @@ export class CreateCustomerPage extends BasePage {
     this.log('💾 Saving customer record...');
     
     // Ensure page is interactive before attempting keyboard action
-    await this.waitForPageInteractive(10000);
+    await this.waitForPageInteractive(20000);
     
     await this.page.keyboard.press('Alt+Enter');
     await this.page.waitForTimeout(3000);
