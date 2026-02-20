@@ -261,6 +261,15 @@ stages:
                 git config --global user.name "Azure Pipelines Bot"
                 git config --global core.longpaths true
                 
+                # Ensure we're on the correct branch (handle detached HEAD state)
+                Write-Host "📌 Checking git branch state..." -ForegroundColor Yellow
+                $currentBranch = git rev-parse --abbrev-ref HEAD
+                Write-Host "   Current branch: $currentBranch" -ForegroundColor Gray
+                if ($currentBranch -eq "HEAD") {
+                    Write-Host "   Detached HEAD detected, checking out $(Build.SourceBranch)..." -ForegroundColor Yellow
+                    git checkout -B $(Build.SourceBranch)
+                }
+                
                 # Check for changes
                 Write-Host "📋 Current git status:" -ForegroundColor Yellow
                 git status --porcelain
@@ -292,18 +301,16 @@ stages:
                         git commit -m "🤖 Auto: Update test results from pipeline run #$(Build.BuildId)"
                         
                         Write-Host "🚀 Pushing to repository..." -ForegroundColor Cyan
-                        Write-Host "   Remote URL: $(Build.Repository.Uri)" -ForegroundColor Gray
                         Write-Host "   Branch: $(Build.SourceBranch)" -ForegroundColor Gray
                         
-                        # Use git credential provider that's already configured by checkout
-                        git push origin HEAD:$(Build.SourceBranch)
+                        # Push without stderr redirect to avoid protocol message misinterpretation
+                        git push origin $(Build.SourceBranch)
                         
                         if ($LASTEXITCODE -eq 0) {
                             Write-Host "✅ Test results committed and pushed successfully!" -ForegroundColor Green
                         } else {
-                            Write-Host "⚠️ Push failed with exit code $LASTEXITCODE" -ForegroundColor Yellow
-                            Write-Host "Git remote info:" -ForegroundColor Gray
-                            git remote -v
+                            Write-Host "⚠️ Push may have failed, checking status..." -ForegroundColor Yellow
+                            git log -1 --oneline
                         }
                     }
                 } else {
