@@ -85,6 +85,22 @@ stages:
             inputs:
               versionSpec: '20.x'
             displayName: '📦 Install Node.js'
+
+          # Install Python
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.13'
+              addToPath: true
+            displayName: '🐍 Install Python 3.13'
+
+          # Install Python dependencies
+          - task: PowerShell@2
+            displayName: '📦 Install Python Dependencies'
+            inputs:
+              targetType: 'inline'
+              script: |
+                python -m pip install --upgrade pip
+                pip install ipykernel pandas matplotlib numpy jupyter
           
           # Install dependencies
           - task: PowerShell@2
@@ -133,7 +149,23 @@ stages:
                 Write-Host "✅ Tests completed successfully!" -ForegroundColor Green
                 Write-Host "📊 View results at: https://playwright.microsoft.com/" -ForegroundColor Cyan
               workingDirectory: '$(System.DefaultWorkingDirectory)'
-          
+
+          # Generate test report from Jupyter notebook
+          - task: PowerShell@2
+            condition: succeededOrFailed()
+            displayName: '📊 Generate Test Report (Jupyter Notebook)'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "🚀 Generating test report from Jupyter notebook..." -ForegroundColor Cyan
+                python -m jupyter nbconvert --to notebook --execute test_results_report.ipynb
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "✅ Test report generated successfully!" -ForegroundColor Green
+                } else {
+                  Write-Host "⚠️ Report generation failed, but continuing..." -ForegroundColor Yellow
+                }
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+
           # Publish test results
           - task: PublishTestResults@2
             condition: succeededOrFailed()
@@ -170,6 +202,21 @@ stages:
               artifact: 'Allure-Results'
               publishLocation: 'pipeline'
             displayName: '📊 Upload Allure Results'
+
+          # Upload Test Report Files (CSV, JSON, PNG)
+          - task: PublishPipelineArtifact@1
+            condition: succeededOrFailed()
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)'
+              artifact: 'Test-Report-Artifacts'
+              publishLocation: 'pipeline'
+              patterns: |
+                test_results.csv
+                test_results.json
+                test_results_visualization.png
+                test_results_report.ipynb
+            continueOnError: true
+            displayName: '📊 Upload Test Report (CSV, JSON, PNG, Notebook)'
 
   # Generate Allure Report
   - stage: Report
