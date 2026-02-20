@@ -1,0 +1,6 @@
+test_id,test_name,status,execution_time_ms,is_pass
+Create multiple customers from Excel (loop all rows),Create multiple customers from Excel (loop all rows),PASSED,192403,False
+🔍 DEBUG: Create customer with minimal fields (no delivery),🔍 DEBUG: Create customer with minimal fields (no delivery),PASSED,167850,False
+Create single customer with basic details,Create single customer with basic details,SKIPPED,0,False
+Home page title check,Home page title check,PASSED,21754,False
+Verify Service Principal auth and skip login,Verify Service Principal auth and skip login,PASSED,25260,False

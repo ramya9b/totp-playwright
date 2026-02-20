@@ -110,6 +110,14 @@ stages:
               script: 'npm ci'
               workingDirectory: '$(System.DefaultWorkingDirectory)'
           
+          # Install Allure reporter
+          - task: PowerShell@2
+            displayName: '📊 Install Allure Reporter'
+            inputs:
+              targetType: 'inline'
+              script: 'npm install --save-dev @playwright/test allure-playwright'
+              workingDirectory: '$(System.DefaultWorkingDirectory)'
+          
           # Install Playwright browsers
           - task: PowerShell@2
             displayName: '🎭 Install Playwright Browsers'
@@ -176,9 +184,24 @@ stages:
               mergeTestResults: true
             displayName: '📊 Publish Test Results'
           
-          # Upload Playwright HTML report
+          # Check if report directory exists
+          - task: PowerShell@2
+            condition: always()
+            displayName: '🔍 Check Report Directory'
+            inputs:
+              targetType: 'inline'
+              script: |
+                if (Test-Path 'playwright-report') {
+                  Write-Host "##vso[task.setvariable variable=ReportExists]true"
+                  Write-Host "✅ Report directory exists" -ForegroundColor Green
+                } else {
+                  Write-Host "##vso[task.setvariable variable=ReportExists]false"
+                  Write-Host "⚠️ No report directory found" -ForegroundColor Yellow
+                }
+          
+          # Upload Playwright HTML report (only if directory exists)
           - task: PublishPipelineArtifact@1
-            condition: succeededOrFailed()
+            condition: and(succeededOrFailed(), eq(variables['ReportExists'], 'true'))
             inputs:
               targetPath: 'playwright-report'
               artifact: 'Playwright-HTML-Report'
