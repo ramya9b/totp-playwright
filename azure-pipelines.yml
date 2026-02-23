@@ -396,43 +396,53 @@ stages:
                     
                     Write-Host "✅ TEAMS_WEBHOOK variable found" -ForegroundColor Green
                     
-                    # Step 2: Verify tests have been executed
-                    $testResultsPath = 'test_results.json'
+                    # Step 2: Parse test results from Playwright results (most reliable)
                     $testExecuted = $false
-                    $summary = $null
+                    $total_tests = 0
+                    $passed_tests = 0
+                    $failed_tests = 0
+                    $skipped_tests = 0
+                    $pass_rate = 0
+                    $totalTime = "N/A"
                     
-                    if (Test-Path $testResultsPath) {
-                        Write-Host "✅ Test results file found" -ForegroundColor Green
-                        $json = Get-Content $testResultsPath | ConvertFrom-Json
-                        $summary = $json.summary
+                    # Try Playwright results first (most reliable)
+                    $playwrightResultsPath = 'test-results/results.json'
+                    if (Test-Path $playwrightResultsPath) {
+                        Write-Host "✅ Playwright results.json found" -ForegroundColor Green
+                        $pwResults = Get-Content $playwrightResultsPath | ConvertFrom-Json
+                        $stats = $pwResults.stats
+                        
+                        $passed_tests = $stats.expected
+                        $failed_tests = $stats.unexpected
+                        $skipped_tests = $stats.skipped
+                        $total_tests = $passed_tests + $failed_tests + $skipped_tests
+                        
+                        if ($total_tests -gt 0) {
+                            $pass_rate = [math]::Round(($passed_tests / ($passed_tests + $failed_tests)) * 100, 2)
+                        }
                         $testExecuted = $true
-                    } else {
-                        Write-Host "⚠️ test_results.json not found, checking for test execution..." -ForegroundColor Yellow
-                        # Check for test report or junit results
-                        if ((Test-Path 'playwright-report') -or (Test-Path 'test-results/junit.xml') -or (Test-Path 'allure-results')) {
-                            Write-Host "✅ Test artifacts found (report/junit/allure)" -ForegroundColor Green
+                        Write-Host "📊 Tests: $total_tests | Passed: $passed_tests | Failed: $failed_tests | Skipped: $skipped_tests" -ForegroundColor Green
+                    }
+                    else {
+                        Write-Host "⚠️ Playwright results.json not found, checking for test artifacts..." -ForegroundColor Yellow
+                        # Fallback: Check for any test artifacts
+                        if ((Test-Path 'playwright-report') -or (Test-Path 'allure-results')) {
+                            Write-Host "✅ Test artifacts found" -ForegroundColor Green
                             $testExecuted = $true
-                            $summary = @{
-                                total_tests = "Unknown"
-                                passed_tests = "Check reports"
-                                failed_tests = "N/A"
-                                pass_rate = 0
-                                total_execution_time_ms = 0
-                            }
+                            # Use placeholder values
+                            $total_tests = "Unknown"
+                            $passed_tests = "Check report"
+                            $failed_tests = "N/A"
+                            $pass_rate = 0
                         }
                     }
                     
                     # Step 3: Send notification if tests executed
                     if ($testExecuted) {
-                        Write-Host "📢 Tests have been executed, sending Teams notification..." -ForegroundColor Cyan
+                        Write-Host "📢 Tests executed, sending Teams notification..." -ForegroundColor Cyan
                         
-                        $statusColor = if ($summary.failed_tests -eq 0 -or $summary.failed_tests -eq "N/A") { "28a745" } else { "dc3545" }
-                        $statusIcon = if ($summary.failed_tests -eq 0 -or $summary.failed_tests -eq "N/A") { "✅" } else { "❌" }
-                        $totalTime = if ($summary.total_execution_time_ms -gt 0) {
-                            [math]::Round($summary.total_execution_time_ms / 1000, 2)
-                        } else {
-                            "N/A"
-                        }
+                        $statusColor = if ($failed_tests -eq 0 -or $failed_tests -eq "N/A") { "28a745" } else { "dc3545" }
+                        $statusIcon = if ($failed_tests -eq 0 -or $failed_tests -eq "N/A") { "✅" } else { "❌" }
                         
                         $body = @{
                             "@type" = "MessageCard"
@@ -443,11 +453,11 @@ stages:
                                 "activityTitle" = "$statusIcon Playwright Test Results - Build #$(Build.BuildId)"
                                 "activitySubtitle" = "$(Build.Repository.Name)"
                                 "facts" = @(
-                                    @{ "name" = "Total Tests"; "value" = "$($summary.total_tests)" },
-                                    @{ "name" = "✅ Passed"; "value" = "$($summary.passed_tests)" },
-                                    @{ "name" = "❌ Failed"; "value" = "$($summary.failed_tests)" },
-                                    @{ "name" = "Pass Rate"; "value" = "$([math]::Round($summary.pass_rate, 2))%" },
-                                    @{ "name" = "Execution Time"; "value" = "${totalTime}s" }
+                                    @{ "name" = "Total Tests"; "value" = "$total_tests" },
+                                    @{ "name" = "✅ Passed"; "value" = "$passed_tests" },
+                                    @{ "name" = "❌ Failed"; "value" = "$failed_tests" },
+                                    @{ "name" = "⏭️ Skipped"; "value" = "$skipped_tests" },
+                                    @{ "name" = "Pass Rate"; "value" = "${pass_rate}%" }
                                 )
                             })
                         } | ConvertTo-Json -Depth 10
@@ -457,7 +467,7 @@ stages:
                         Write-Host "   Webhook: $($webhook.Substring(0, 50))..." -ForegroundColor Gray
                     } else {
                         Write-Host "⚠️ No test execution detected - skipping notification" -ForegroundColor Yellow
-                        Write-Host "   Expected: test_results.json or test artifacts (report/junit/allure)" -ForegroundColor Gray
+                        Write-Host "   Expected: test-results/results.json or test artifacts" -ForegroundColor Gray
                     }
                 } catch {
                     Write-Host "❌ Error sending Teams notification: $_" -ForegroundColor Red
