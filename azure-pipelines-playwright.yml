@@ -23,11 +23,8 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  - group: PlaywrightTestsConfig-Teams
+  - group: PlaywrightTestsConfig
   - group: Playwright-Testing-Secrets
-  
-  - name: TEAMS_WEBHOOK
-    value: 'https://alphavsoltions.webhook.office.com/webhookb2/837c01d6-fae3-4132-be5f-7bc7faa53026@e4c980ba-90aa-4bb3-b931-847a929f8f3f/IncomingWebhook/01cab2072a834c689c1ba33cc45887dd/f8627fd1-b3d3-4061-8d88-e65f897269b3/V2Utx-HNwL1J_3ql7oqPExPFWfTVAKKyBRibarLY61kcc1' # Teams webhook URL for notifications (configure in variable group)
   - name: pythonVersion
     value: '3.13'
   - name: nodeVersion
@@ -319,9 +316,9 @@ stages:
                             Write-Host "⚠️ TEAMS_WEBHOOK not configured in variable group" -ForegroundColor Yellow
                             Write-Host "   To enable notifications:" -ForegroundColor Gray
                             Write-Host "   1. Go to Pipelines → Library → Variable groups" -ForegroundColor Gray
-                            Write-Host "   2. Create 'PlaywrightTestsConfig' group" -ForegroundColor Gray
-                            Write-Host "   3. Add TEAMS_WEBHOOK secret variable with your Teams webhook URL" -ForegroundColor Gray
-                            Write-Host "   4. Link group to pipeline" -ForegroundColor Gray
+                            Write-Host "   2. Verify 'PlaywrightTestsConfig' group exists" -ForegroundColor Gray
+                            Write-Host "   3. Ensure TEAMS_WEBHOOK secret variable is set with your Teams webhook URL" -ForegroundColor Gray
+                            Write-Host "   4. Confirm variable group is linked to this pipeline" -ForegroundColor Gray
                             exit 0
                         }
                         
@@ -354,13 +351,15 @@ stages:
                         } | ConvertTo-Json -Depth 10
                         
                         Write-Host "📢 Sending Teams notification..." -ForegroundColor Cyan
+                        Write-Host "   Webhook: $($webhook.Substring(0, 50))..." -ForegroundColor Gray
                         $response = Invoke-RestMethod -Uri $webhook -Method Post -ContentType 'application/json' -Body $body -ErrorAction Stop
-                        Write-Host "✅ Teams notification sent!" -ForegroundColor Green
+                        Write-Host "✅ Teams notification sent successfully!" -ForegroundColor Green
                     } else {
-                        Write-Host "⚠️ test_results.json not found" -ForegroundColor Yellow
+                        Write-Host "⚠️ test_results.json not found - skipping notification" -ForegroundColor Yellow
                     }
                 } catch {
                     Write-Host "❌ Error sending Teams notification: $_" -ForegroundColor Red
+                    Write-Host "   Response details: $($_.Exception.Response.StatusCode)" -ForegroundColor Yellow
                     exit 1
                 }
             env:

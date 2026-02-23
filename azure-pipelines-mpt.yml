@@ -45,11 +45,8 @@ pool:
 
 variables:
   # Using Access Token Authentication (enabled in workspace)
-  - group: PlaywrightTestsConfig-Teams
+  - group: PlaywrightTestsConfig
   - group: Playwright-Testing-Secrets
-  
-  - name: TEAMS_WEBHOOK
-    value: 'https://alphavsoltions.webhook.office.com/webhookb2/837c01d6-fae3-4132-be5f-7bc7faa53026@e4c980ba-90aa-4bb3-b931-847a929f8f3f/IncomingWebhook/01cab2072a834c689c1ba33cc45887dd/f8627fd1-b3d3-4061-8d88-e65f897269b3/V2Utx-HNwL1J_3ql7oqPExPFWfTVAKKyBRibarLY61kcc1' # Teams webhook URL for notifications (configure in variable group)
   - name: PLAYWRIGHT_SERVICE_URL
     value: 'wss://eastus.api.playwright.microsoft.com/playwrightworkspaces/03f9e658-c2b3-45a4-9689-0c639e6f99c0/browsers'
   - name: D365_URL

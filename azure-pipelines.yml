@@ -71,13 +71,14 @@ pool:
 
 variables:
   # Using Access Token Authentication (enabled in workspace)
-  - group: PlaywrightTestsConfig-Teams
+  - group: PlaywrightTestsConfig
   - group: Playwright-Testing-Secrets
   
   - name: PLAYWRIGHT_SERVICE_URL
     value: 'wss://eastus.api.playwright.microsoft.com/playwrightworkspaces/03f9e658-c2b3-45a4-9689-0c639e6f99c0/browsers'
   - name: D365_URL
     value: 'https://avs-isv-puat.sandbox.operations.dynamics.com'
+
   - name: USE_ACCESS_TOKEN
     value: 'true' # Using access token - workspace has it enabled
 
