@@ -371,22 +371,52 @@ stages:
                         $statusColor = if ($failed_tests -eq 0 -or $failed_tests -eq "N/A") { "28a745" } else { "dc3545" }
                         $statusIcon = if ($failed_tests -eq 0 -or $failed_tests -eq "N/A") { "✅" } else { "❌" }
                         
+                        # Create color-coded section based on pass/fail
+                        $passedColor = if ($passed_tests -eq 0) { "Warning" } else { "Good" }
+                        $failedColor = if ($failed_tests -eq 0) { "Good" } else { "Attention" }
+                        
+                        # Format numbers with bold markdown
+                        $totalFormatted = "**$total_tests**"
+                        $passedFormatted = "**$passed_tests**"
+                        $failedFormatted = "**$failed_tests**"
+                        $skippedFormatted = "**$skipped_tests**"
+                        $passRateFormatted = "**${pass_rate}%**"
+                        
                         $body = @{
                             "@type" = "MessageCard"
                             "@context" = "https://schema.org/extensions"
                             "summary" = "Playwright Test Results - Build #$(Build.BuildId)"
                             "themeColor" = $statusColor
-                            "sections" = @(@{
-                                "activityTitle" = "$statusIcon Playwright Test Results - Build #$(Build.BuildId)"
-                                "activitySubtitle" = "$(Build.Repository.Name)"
-                                "facts" = @(
-                                    @{ "name" = "Total Tests"; "value" = "$total_tests" },
-                                    @{ "name" = "✅ Passed"; "value" = "$passed_tests" },
-                                    @{ "name" = "❌ Failed"; "value" = "$failed_tests" },
-                                    @{ "name" = "⏭️ Skipped"; "value" = "$skipped_tests" },
-                                    @{ "name" = "Pass Rate"; "value" = "${pass_rate}%" }
-                                )
-                            })
+                            "sections" = @(
+                                @{
+                                    "activityTitle" = "$statusIcon Playwright Test Results"
+                                    "activitySubtitle" = "Build #$(Build.BuildId) - $(Build.Repository.Name)"
+                                    "text" = "Test execution completed with detailed metrics below"
+                                },
+                                @{
+                                    "activityTitle" = "📊 Summary Statistics"
+                                    "facts" = @(
+                                        @{ "name" = "🏁 Total Tests"; "value" = $totalFormatted },
+                                        @{ "name" = "✅ Passed"; "value" = $passedFormatted },
+                                        @{ "name" = "❌ Failed"; "value" = $failedFormatted },
+                                        @{ "name" = "⏭️ Skipped"; "value" = $skippedFormatted },
+                                        @{ "name" = "🏆 Pass Rate"; "value" = $passRateFormatted }
+                                    )
+                                },
+                                @{
+                                    "activityTitle" = if ($failed_tests -eq 0 -or $failed_tests -eq "N/A") { "🌟 All Tests Passed!" } else { "⚠️ Test Failures Detected" }
+                                    "text" = if ($failed_tests -eq 0 -or $failed_tests -eq "N/A") { 
+                                        "Excellent! All tests executed successfully." 
+                                    } else { 
+                                        "$failed_tests test(s) failed. Review logs for details." 
+                                    }
+                                    "themeColor" = if ($failed_tests -eq 0 -or $failed_tests -eq "N/A") { "28a745" } else { "dc3545" }
+                                },
+                                @{
+                                    "activityTitle" = "🔗 View Details"
+                                    "text" = "[View Playwright Report]($(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)) | [View Test Artifacts]($(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)\&view=artifacts)"
+                                }
+                            )
                         } | ConvertTo-Json -Depth 10
                         
                         $response = Invoke-RestMethod -Uri $webhook -Method Post -ContentType 'application/json' -Body $body -ErrorAction Stop
