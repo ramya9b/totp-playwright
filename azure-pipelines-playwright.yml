@@ -307,30 +307,59 @@ stages:
               targetType: 'inline'
               script: |
                 try {
-                    if (Test-Path 'test_results.json') {
-                        $json = Get-Content 'test_results.json' | ConvertFrom-Json
+                    Write-Host "🔍 Checking Teams webhook configuration..." -ForegroundColor Cyan
+                    $webhook = $env:TEAMS_WEBHOOK
+                    
+                    # Step 1: Verify webhook variable exists
+                    if ([string]::IsNullOrWhiteSpace($webhook)) {
+                        Write-Host "⚠️ TEAMS_WEBHOOK variable not configured in PlaywrightTestsConfig group" -ForegroundColor Yellow
+                        Write-Host "   To enable Teams notifications:" -ForegroundColor Gray
+                        Write-Host "   1. Go to Pipelines → Library → Variable groups" -ForegroundColor Gray
+                        Write-Host "   2. Open PlaywrightTestsConfig" -ForegroundColor Gray
+                        Write-Host "   3. Ensure TEAMS_WEBHOOK is set with your Teams webhook URL" -ForegroundColor Gray
+                        Write-Host "   4. Mark as Secret ✓" -ForegroundColor Gray
+                        exit 0
+                    }
+                    
+                    Write-Host "✅ TEAMS_WEBHOOK variable found" -ForegroundColor Green
+                    
+                    # Step 2: Verify tests have been executed
+                    $testResultsPath = 'test_results.json'
+                    $testExecuted = $false
+                    $summary = $null
+                    
+                    if (Test-Path $testResultsPath) {
+                        Write-Host "✅ Test results file found" -ForegroundColor Green
+                        $json = Get-Content $testResultsPath | ConvertFrom-Json
                         $summary = $json.summary
-                        $webhook = $env:TEAMS_WEBHOOK
-                        
-                        if (-not $webhook -or $webhook -eq '$(TEAMS_WEBHOOK)') {
-                            Write-Host "⚠️ TEAMS_WEBHOOK not configured in variable group" -ForegroundColor Yellow
-                            Write-Host "   To enable notifications:" -ForegroundColor Gray
-                            Write-Host "   1. Go to Pipelines → Library → Variable groups" -ForegroundColor Gray
-                            Write-Host "   2. Verify 'PlaywrightTestsConfig' group exists" -ForegroundColor Gray
-                            Write-Host "   3. Ensure TEAMS_WEBHOOK secret variable is set with your Teams webhook URL" -ForegroundColor Gray
-                            Write-Host "   4. Confirm variable group is linked to this pipeline" -ForegroundColor Gray
-                            exit 0
+                        $testExecuted = $true
+                    } else {
+                        Write-Host "⚠️ test_results.json not found, checking for test execution..." -ForegroundColor Yellow
+                        # Check for test report or junit results
+                        if ((Test-Path 'playwright-report') -or (Test-Path 'test-results/junit.xml') -or (Test-Path 'allure-results')) {
+                            Write-Host "✅ Test artifacts found (report/junit/allure)" -ForegroundColor Green
+                            $testExecuted = $true
+                            $summary = @{
+                                total_tests = "Unknown"
+                                passed_tests = "Check reports"
+                                failed_tests = "N/A"
+                                pass_rate = 0
+                                total_execution_time_ms = 0
+                            }
                         }
+                    }
+                    
+                    # Step 3: Send notification if tests executed
+                    if ($testExecuted) {
+                        Write-Host "📢 Tests have been executed, sending Teams notification..." -ForegroundColor Cyan
                         
-                        if (-not ($webhook -match '^https://outlook\.webhook\.office')) {
-                            Write-Host "❌ Invalid Teams webhook URL format" -ForegroundColor Red
-                            Write-Host "   Expected: https://outlook.webhook.office.com/..." -ForegroundColor Gray
-                            exit 1
+                        $statusColor = if ($summary.failed_tests -eq 0 -or $summary.failed_tests -eq "N/A") { "28a745" } else { "dc3545" }
+                        $statusIcon = if ($summary.failed_tests -eq 0 -or $summary.failed_tests -eq "N/A") { "✅" } else { "❌" }
+                        $totalTime = if ($summary.total_execution_time_ms -gt 0) {
+                            [math]::Round($summary.total_execution_time_ms / 1000, 2)
+                        } else {
+                            "N/A"
                         }
-                        
-                        $statusColor = if ($summary.failed_tests -eq 0) { "28a745" } else { "dc3545" }
-                        $statusIcon = if ($summary.failed_tests -eq 0) { "✅" } else { "❌" }
-                        $totalTime = [math]::Round($summary.total_execution_time_ms / 1000, 2)
                         
                         $body = @{
                             "@type" = "MessageCard"
@@ -350,16 +379,16 @@ stages:
                             })
                         } | ConvertTo-Json -Depth 10
                         
-                        Write-Host "📢 Sending Teams notification..." -ForegroundColor Cyan
-                        Write-Host "   Webhook: $($webhook.Substring(0, 50))..." -ForegroundColor Gray
                         $response = Invoke-RestMethod -Uri $webhook -Method Post -ContentType 'application/json' -Body $body -ErrorAction Stop
                         Write-Host "✅ Teams notification sent successfully!" -ForegroundColor Green
+                        Write-Host "   Webhook: $($webhook.Substring(0, 50))..." -ForegroundColor Gray
                     } else {
-                        Write-Host "⚠️ test_results.json not found - skipping notification" -ForegroundColor Yellow
+                        Write-Host "⚠️ No test execution detected - skipping notification" -ForegroundColor Yellow
+                        Write-Host "   Expected: test_results.json or test artifacts (report/junit/allure)" -ForegroundColor Gray
                     }
                 } catch {
                     Write-Host "❌ Error sending Teams notification: $_" -ForegroundColor Red
-                    Write-Host "   Response details: $($_.Exception.Response.StatusCode)" -ForegroundColor Yellow
+                    Write-Host "   Details: $($_.Exception.Message)" -ForegroundColor Yellow
                     exit 1
                 }
             env:
